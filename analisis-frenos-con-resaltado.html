@@ -1,0 +1,938 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Análisis de Frenos - Sistema Judicial</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        html {
+            font-size: 16px;
+        }
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #ebedef;
+            color: #333;
+            overscroll-behavior: none;
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            padding: 1rem;
+        }
+        header {
+            background-color: #2c3e50;
+            color: #fff;
+            padding: 0.8rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header img {
+            height: 2.5rem;
+        }
+        header .metadata {
+            font-size: 0.9rem;
+        }
+        .tabs {
+            display: flex;
+            background-color: #34495e;
+            border-radius: 0.5rem 0.5rem 0 0;
+            flex-wrap: wrap;
+        }
+        .tab {
+            flex: 1;
+            padding: 0.8rem;
+            text-align: center;
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 1rem;
+        }
+        .tab.active {
+            background-color: #3498db;
+        }
+        .tab-content {
+            display: none;
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 0 0 0.5rem 0.5rem;
+            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+        }
+        .tab-content.active {
+            display: block;
+        }
+        button {
+            padding: 0.8rem 1.5rem;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 0.3rem;
+            transition: background-color 0.3s;
+            min-height: 44px;
+            touch-action: manipulation;
+        }
+        button:hover:not(:disabled) {
+            background-color: #2980b9;
+        }
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        .input-group {
+            margin: 0.8rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .input-group label {
+            width: 9rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        .input-group input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            width: 100%;
+            max-width: 20rem;
+            font-size: 0.9rem;
+        }
+        .checkbox-group {
+            margin: 0.8rem 0;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .checkbox-group label {
+            font-size: 0.9rem;
+        }
+        .status {
+            font-style: italic;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        .validation-seal {
+            margin: 1rem 0;
+            padding: 0.6rem;
+            background-color: #e8f8e8;
+            border-left: 0.25rem solid #2ecc71;
+            font-size: 0.8rem;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #fff;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-width: 90%;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        .graph-container {
+            margin: 1rem 0;
+            padding: 0.6rem;
+            background-color: #f9f9f9;
+            border-radius: 0.5rem;
+            width: 100%;
+            height: 40vh;
+        }
+        #mu-graph {
+            width: 100% !important;
+            height: 100% !important;
+        }
+        #reaccion {
+            background-color: #1c2526;
+            color: #fff;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+        .lights-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+        .lights-row {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .light {
+            width: 15vmin;
+            height: 15vmin;
+            border-radius: 50%;
+            background-color: #4a4a4a;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .light.encendida {
+            background-color: #ff0000;
+            box-shadow: 0 0 2rem rgba(255, 0, 0, 0.8), 0 0 0.6rem rgba(255, 255, 255, 0.5);
+        }
+        .reaction-area {
+            width: 100%;
+            height: 30vh;
+            background-color: transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: #fff;
+            text-align: center;
+            margin: 1rem 0;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+        .reaction-result, .reaction-explanation {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            animation: fadeIn 0.5s ease-in;
+        }
+        .reaction-result.false-start {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+        #iniciar-test {
+            padding: 0.9rem 2rem;
+            font-size: 1.1rem;
+            background-color: #e74c3c;
+        }
+        #iniciar-test:hover:not(:disabled) {
+            background-color: #c0392b;
+        }
+        /* Estilos para el nivel de burbuja */
+        .bubble-level-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem 0;
+            position: relative;
+            width: 80vw;
+            height: 80vw;
+            max-width: 300px;
+            max-height: 300px;
+            background-color: #f0f0f0;
+            border: 2px solid #333;
+            border-radius: 0.5rem;
+        }
+        #bubble-level {
+            width: 100%;
+            height: 100%;
+        }
+        .bubble-status {
+            margin-top: 1rem;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+        .bubble-status.levelled {
+            color: #2ecc71;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        @media (max-width: 768px) {
+            html { font-size: 14px; }
+            .tabs { flex-direction: column; }
+            .tab { padding: 0.6rem; font-size: 0.9rem; }
+            .input-group { flex-direction: column; align-items: flex-start; }
+            .input-group label { width: 100%; }
+            .input-group input { max-width: 100%; }
+            .checkbox-group { flex-direction: column; gap: 0.5rem; }
+            .graph-container { height: 35vh; }
+            .light { width: 12vmin; height: 12vmin; }
+            .lights-row { gap: 0.5rem; }
+            .reaction-area { height: 25vh; font-size: 1.2rem; }
+            button { padding: 0.6rem 1rem; font-size: 0.9rem; }
+            .bubble-level-container { width: 70vw; height: 70vw; max-width: 250px; max-height: 250px; }
+        }
+        @media (max-width: 480px) {
+            html { font-size: 12px; }
+            .container { padding: 0.5rem; }
+            header { padding: 0.5rem; }
+            header img { height: 2rem; }
+            .light { width: 10vmin; height: 10vmin; }
+            .reaction-area { font-size: 1rem; }
+            .modal-content { max-width: 95%; }
+            .bubble-level-container { width: 60vw; height: 60vw; max-width: 200px; max-height: 200px; }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <img src="https://via.placeholder.com/150x40?text=Logo" alt="Logo">
+        <div class="metadata">
+            <span id="current-datetime"></span> | Versión 1.0.0
+        </div>
+    </header>
+    <div class="container">
+        <h1>Análisis de Frenos - Sistema Judicial</h1>
+        <div class="tabs">
+            <div class="tab active" onclick="openTab('nivel')">Nivel</div>
+            <div class="tab" onclick="openTab('mu')">Análisis μ</div>
+            <div class="tab" onclick="openTab('reaccion')">Tiempo de Reacción</div>
+        </div>
+
+        <div id="nivel" class="tab-content active">
+            <h2>Nivel de Inclinación</h2>
+            <div class="bubble-level-container">
+                <canvas id="bubble-level"></canvas>
+            </div>
+            <p class="bubble-status" id="bubble-status">Ajuste el dispositivo para nivelar</p>
+            <button onclick="calibrateSensors()">Calibrar Sensores</button>
+            <p class="status">Estado: <span id="sensor-status">Esperando calibración</span></p>
+        </div>
+
+        <div id="mu" class="tab-content">
+            <h2>Análisis del Coeficiente de Rozamiento (μ)</h2>
+            <div class="input-group">
+                <label>Número de diligencias:</label>
+                <input type="text" id="mu-diligencias" placeholder="Ej: 1234/2025">
+                <label>Matrícula:</label>
+                <input type="text" id="mu-matricula" placeholder="Ej: ABC1234">
+            </div>
+            <button id="start-recording">Iniciar Grabación</button>
+            <button id="stop-recording" disabled>Detener Grabación</button>
+            <p><strong>Estado:</strong> <span id="recording-status">No grabando</span></p>
+            <p><strong>Estado GPS:</strong> <span id="gps-status">📍 Esperando señal</span></p>
+            <p><strong>Coordenadas:</strong> <span id="gps-coords">N/A</span></p>
+            <p><strong>Velocidad GPS:</strong> <span id="gps-speed">0.0 km/h</span></p>
+            <p><strong>Precisión GPS:</strong> <span id="gps-accuracy">N/A</span></p>
+            <p><strong>Puntos GPS:</strong> <span id="gps-points">0</span></p>
+            <div class="checkbox-group">
+                <label><input type="checkbox" id="show-eje-x" checked onchange="updateGraph()"> Eje X</label>
+                <label><input type="checkbox" id="show-eje-y" checked onchange="updateGraph()"> Eje Y</label>
+                <label><input type="checkbox" id="show-eje-z" checked onchange="updateGraph()"> Eje Z</label>
+                <label><input type="checkbox" id="show-velocidad" checked onchange="updateGraph()"> Velocidad</label>
+            </div>
+            <div class="graph-container">
+                <canvas id="mu-graph"></canvas>
+            </div>
+            <p><strong>μ Automático:</strong> <span id="mu-auto">0.000</span></p>
+            <p><strong>μ Manual:</strong> <span id="mu-manual">0.000</span></p>
+            <p class="status">Selección: <span id="selection-info">Haga clic en la gráfica para seleccionar el tramo</span></p>
+            <button onclick="downloadAccelerometerData()">Exportar Datos Acelerómetro (CSV)</button>
+            <button onclick="downloadGPSData()">Exportar Datos GPS (CSV)</button>
+            <button onclick="generatePDFReport()">Generar Informe PDF</button>
+            <div class="validation-seal">Datos certificados por Análisis de Frenos | Hash: <span id="mu-hash">N/A</span></div>
+            <p>
+                <input type="checkbox" id="calcular-mu-auto" checked onchange="calculateAutoMU()"> Cálculo Automático de μ<br>
+                <input type="checkbox" id="seleccionar-intervalo" onchange="toggleManualSelection()"> Selección Manual de Tramo
+            </p>
+        </div>
+
+        <div id="reaccion" class="tab-content">
+            <h2>Ensayo de Tiempo de Reacción</h2>
+            <div class="input-group">
+                <label>Número de diligencias:</label>
+                <input type="text" id="reaccion-diligencias" placeholder="Ej: 1234/2025">
+                <label>Matrícula:</label>
+                <input type="text" id="reaccion-matricula" placeholder="Ej: ABC1234">
+            </div>
+            <div class="lights-wrapper">
+                <div class="lights-row">
+                    <div class="light" data-index="1"></div>
+                    <div class="light" data-index="2"></div>
+                    <div class="light" data-index="3"></div>
+                    <div class="light" data-index="4"></div>
+                    <div class="light" data-index="5"></div>
+                </div>
+                <div class="lights-row">
+                    <div class="light" data-index="1"></div>
+                    <div class="light" data-index="2"></div>
+                    <div class="light" data-index="3"></div>
+                    <div class="light" data-index="4"></div>
+                    <div class="light" data-index="5"></div>
+                </div>
+            </div>
+            <button id="iniciar-test">Iniciar Ensayo</button>
+            <button id="capture-screenshot" disabled>Exportar Captura</button>
+            <div class="reaction-area" id="reaction-area">Prepárate para interactuar cuando las luces se apaguen</div>
+            <div class="reaction-result" id="reaction-result"></div>
+            <div class="reaction-explanation" id="reaction-explanation"></div>
+            <div class="validation-seal">Datos certificados por Análisis de Frenos | Hash: <span id="reaction-hash">N/A</span></div>
+        </div>
+
+        <div class="modal" id="tutorial-modal">
+            <div class="modal-content">
+                <h2>Bienvenido al Sistema de Análisis de Frenos</h2>
+                <p>Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
+                <p><strong>Instrucciones:</strong></p>
+                <ul>
+                    <li>Nivele el dispositivo en la pestaña "Nivel" hasta que la burbuja sea verde.</li>
+                    <li>En "Análisis μ", inicie la grabación para capturar datos de frenado.</li>
+                    <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
+                    <li>Exporte los datos en CSV o PDF para su uso en informes judiciales.</li>
+                </ul>
+                <button onclick="document.getElementById('tutorial-modal').style.display='none'">Entendido</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.0/dist/html2canvas.min.js"></script>
+    <script src="/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@jspdf/cjspdf@3.5.1/dist/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+        let accelerometerData = { x: [], y: [], z: [], speed: [], time: [] };
+        let gpsData = { lat: [], lon: [], speed: [], accuracy: [], time: [] };
+        let isRecording = false;
+        let manualSelection = { start: null, end: null };
+        let calibration = { x: 0, y: 0, z: 9.81 };
+        let watchId = null;
+        let isLevelled = false;
+
+        // Actualizar fecha y hora
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('current-datetime').textContent = now.toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
+        }
+        setInterval(updateDateTime, 1000);
+        updateDateTime();
+
+        // Mostrar tutorial al cargar
+        document.getElementById('tutorial-modal').style.display = 'flex';
+
+        // Gestión de pestañas
+        function openTab(tabId) {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.querySelector(`[onclick="openTab('${tabId}')"]`).classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+            if (tabId === 'nivel') {
+                initBubbleLevel();
+            }
+        }
+
+        // Configuración del nivel de burbuja
+        const bubbleCanvas = document.getElementById('bubble-level');
+        const bubbleCtx = bubbleCanvas.getContext('2d');
+        let bubbleRadius = 15;
+
+        function resizeBubbleCanvas() {
+            const container = document.querySelector('.bubble-level-container');
+            bubbleCanvas.width = container.clientWidth;
+            bubbleCanvas.height = container.clientHeight;
+            bubbleRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 20;
+            drawBubble();
+        }
+
+        function initBubble() {
+            resizeBubbleCanvas();
+            window.addEventListener('resize', resizeBubbleCanvas);
+            window.addEventListener('orientationchange', resizeBubbleCanvas);
+        }
+
+        function drawBubble() {
+            bubbleCtx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
+            // Dibujar la cuadrícula
+            bubbleCtx.beginPath();
+            bubbleCtx.strokeStyle = '#666';
+            bubbleCtx.lineWidth = 1;
+            bubbleCtx.moveTo(bubbleCanvas.width / 2, 0);
+            bubbleCtx.lineTo(bubbleCanvas.width / 2, bubbleCanvas.height);
+            bubbleCtx.moveTo(0, bubbleCanvas.height / 2);
+            bubbleCtx.lineTo(bubbleCanvas.width, bubbleCanvas.height / 2);
+            bubbleCtx.stroke();
+
+            // Calcular posición de la burbuja
+            const maxTilt = 10; // Máximo ángulo de inclinación en °
+            let angleX = calibration.x || 0;
+            let angleY = calibration.y || 0;
+            const centerX = bubbleCanvas.width / 2;
+            const centerY = bubbleCanvas.height / 2;
+            const maxOffset = (bubbleCanvas.width / 2) - bubbleRadius;
+            const offsetX = (angleX / maxTilt) * maxOffset;
+            const offsetY = (angleY / maxTilt) * maxOffset;
+
+            // Dibujar la burbuja
+            bubbleCtx.beginPath();
+            bubbleCtx.arc(centerX + offsetX, centerY + offsetY, bubbleRadius, 0, 2 * Math.PI);
+            bubbleCtx.fillStyle = isLevelled ? '#2ecc71' : '#e74c3c';
+            bubbleCtx.fill();
+            bubbleCtx.strokeStyle = '#333';
+            bubbleCtx.lineWidth = 2;
+            bubbleCtx.stroke();
+        }
+
+        // Calibración de sensores
+        function calibrateSensors() {
+            document.getElementById('sensor-status').innerText = 'Calibrando...';
+            window.addEventListener('devicemotion', function handler(event) {
+                calibration.x = event.accelerationIncludingGravity?.x || 0;
+                calibration.y = event.accelerationIncludingGravity?.y || 0;
+                calibration.z = event.accelerationIncludingGravity?.z || 9.81;
+                document.getElementById('sensor-status').innerText = 'Calibración completada';
+                window.removeEventListener('devicemotion', handler);
+                initBubbleLevel();
+            }, { passive: true, once: true });
+        }
+
+        // Actualizar nivel de burbuja con datos del acelerómetro
+        window.addEventListener('devicemotion', event => {
+            const x = (event.accelerationIncludingGravity?.x || 0) - calibration.x;
+            const y = (event.accelerationIncludingGravity?.y || 0) - calibration.y;
+            const z = (event.accelerationIncludingGravity?.z || 0) - calibration.z;
+
+            // Convertir aceleraciones a ángulos en grados
+            calibration.angleX = Math.atan2(y, z) * (180 / Math.PI);
+            calibration.angleY = Math.atan2(x, z) * (180 / Math.PI);
+
+            // Verificar si está nivelado (±0.5°)
+            isLevelled = Math.abs(calibration.angleX) < 0.5 && Math.abs(calibration.angleY) < 0.5;
+            document.getElementById('bubble-status').innerText = isLevelled ? '✓ Nivelado' : 'Ajuste el dispositivo';
+            document.getElementById('bubble-status').classList.toggle('levelled', isLevelled);
+
+            drawBubble();
+
+            if (isRecording) {
+                const time = performance.now() - recordingStartTime /  accelerometerData.time.length / 10;
+                accelerometerData.x.push(x);
+                accelerometerData.y.push(y);
+                accelerometerData.z.push(z);
+                accelerometerData.speed.push(gpsData.speed[gpsData.speed.length - 1] || 0);
+                accelerometerData.time.push(time);
+                updateGraph();
+                calculateAutoMU();
+            }
+        }, { passive: false });
+
+        // Captura de datos GPS
+        function startGPS() {
+            if (!navigator.geolocation) {
+                document.getElementById('gps-status').innerText = 'GPS no soportado';
+                return;
+            }
+            watchId = navigator.geolocation.watchPosition(
+                position => {
+                    const time = gpsData.time.length / 10;
+                    gpsData.lat.push(position.coords.latitude);
+                    gpsData.ln.push(gpsData.speed.latitude || 0);
+                    gpsData.speed.push(position.coords.speed ? position.coords.speed * 3.6 : 0);
+                    gpsData.accuracy.push(position.coords.accuracy);
+                    gpsData.time.push(position.coords.time);
+                    document.getElementById('gps-coords').id).innerText = ` '${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)} `;
+                    document.getElementById('gps-speed').innerText = ` '${gpsData.speed[gpsData.speed.length - 1].toFixed(1)} km/h `;
+                    document.getElementById('gps-accuracy').innerText = ` '${position.coords.accuracy.toFixed(1)} m `;
+                    document.getElementById('gps-points').innerText = gpsData.time.length;
+                    document.getElementById('gps-status').innerText = '📍 Señal activa';
+                    ';
+            },
+            error => {
+                document.getElementById('gps-status').innerText = `Error GPS: ${error.message}`;
+            },
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+        );
+        }
+
+        // Gráfica de Análisis μo
+        const ctx = document.getElementById('mu-graph').getContext('2d');
+        const muChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Eje X (m/s²)', data: [], borderColor: '#e74c3c', hidden: false },
+                    { label: 'Eje Y (m/s²)', data: [], borderColor: '#3498db', hidden: false },
+                    { label: 'Eje Z (m/z²)', data: [], borderColor: '#2ecc71', hidden: false },
+                    { label: 'Velocidad (km/h)', data: [], borderColor: '#f1c40f', hidden: false },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: false } },
+                plugins: {
+                    title: { display: true, text: 'Datos de Frenado en Tiempo Real', font: { size: 1.2 * 16 } }
+                },
+                onClick: (event, elements, chart) => {
+                    if (document.getElementById('seleccionar-intervalo').checked) {
+                        const xValue = chart.scales.x.getValueForPixel(event.offsetX);
+                        if (!manualSelection.start) {
+                            manualSelection.start = Math.floor(xValue);
+                            document.getElementById('selection-info').innerText = `Inicio: ${manualSelection.start}. Seleccione el fin.`;
+                        } else if (!manualSelection.end) {
+                            manualSelection.end = Math.floor(xValue);
+                            document.getElementById('selection-info').innerText = `Tramo: ${manualSelection.start} a ${manualSelection.end}`;
+                            calculateManualMU();
+                        } else {
+                            manualSelection = { start: null, end: null };
+                            document.getElementById('selection-info').innerText = 'Haga clic en la gráfica para seleccionar el tramo';
+                        }
+                    }
+                }
+            }
+        });
+
+        function updateGraph() {
+            muChart.data.labels = accelerometerData.time;
+            muChart.data.datasets[0].data = accelerometerData.x;
+            muChart.data.datasets[1].data = accelerometerData.y;
+            muChart.data.datasets[2].data = accelerometerData.z;
+            muChart.data.datasets[3].data = accelerometerData.speed;
+            muChart.data.datasets[0].hidden = !document.getElementById('show-eje-x').checked;
+            muChart.data.datasets[1].hidden = !document.getElementById('show-eje-y').checked;
+            muChart.data.datasets[2].hidden = !document.getElementById('show-eje-z').checked;
+            muChart.data.datasets[3].hidden = !document.getElementById('show-velocidad').checked;
+            muChart.update();
+        }
+
+        function calculateAutoMU() {
+            if (!document.getElementById('calcular-mu-auto').checked || accelerometerData.z.length === 0) return;
+            const maxDeceleration = Math.min(...accelerometerData.z);
+            const g = 9.81;
+            const mu = Math.abs(maxDeceleration / g);
+            document.getElementById('mu-auto').innerText = mu.toFixed(3);
+        }
+
+        function calculateManualMU() {
+            if (!manualSelection.start || !manualSelection.end) return;
+            const start = Math.min(manualSelection.start, manualSelection.end);
+            const end = Math.max(manualSelection.start, manualSelection.end);
+            const zData = accelerometerData.z.slice(start, end + 1);
+            const avgDeceleration = zData.reduce((sum, val) => sum + val, 0) / zData.length;
+            const g = 9.81;
+            const mu = Math.abs(avgDeceleration / g);
+            document.getElementById('mu-manual').innerText = mu.toFixed(3);
+        }
+
+        function toggleManualSelection() {
+            if (!document.getElementById('seleccionar-intervalo').checked) {
+                manualSelection = { start: null, end: null };
+                document.getElementById('selection-info').innerText = 'Haga clic en la gráfica para seleccionar el tramo';
+            }
+        }
+
+        // Generar hash SHA-256
+        async function generateHash(data) {
+            const msgBuffer = new TextEncoder().encode(data);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // Grabación de datos
+        document.getElementById('start-recording').addEventListener('click', () => {
+            if (!isLevelled) {
+                alert('Por favor, nivela el dispositivo en la pestaña "Nivel" antes de iniciar la grabación.');
+                return;
+            }
+            if (!window.DeviceMotionEvent || !navigator.geolocation) {
+                alert('Los sensores no están disponibles en este dispositivo.');
+                return;
+            }
+            document.getElementById('start-recording').disabled = true;
+            document.getElementById('stop-recording').disabled = false;
+            document.getElementById('recording-status').innerText = 'Grabando...';
+            accelerometerData = { x: [], y: [], z: [], speed: [], time: [] };
+            gpsData = { lat: [], lng: [], speed: [], accuracy: [], time: [] };
+            isRecording = true;
+            startGPS();
+        });
+
+        document.getElementById('stop-recording').addEventListener('click', () => {
+            isRecording = false;
+            navigator.geolocation.clearWatch(watchId);
+            document.getElementById('start-recording').disabled = false;
+            document.getElementById('stop-recording').disabled = true;
+            document.getElementById('recording-status').innerText = 'Grabación finalizada';
+            calculateAutoMU();
+        });
+
+        // Descarga de datos
+        async function downloadAccelerometerData() {
+            const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
+            const matricula = document.getElementById('mu-matricula').value || 'N/A';
+            const now = new Date().toLocaleString('es-ES');
+            let csv = `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${now}\nDispositivo:${navigator.userAgent}\nFrecuencia de muestreo,10 Hz\n`;
+            csv += 'Tiempo (s),Eje X:${m/s²},Eje Y:${m/s²},Eje Z:${m/s²},Velocidad:${km/h}\n';
+            for (let i = 0; i < accelerometerData.time.length; i++) {
+                csv += `${accelerometerData.time[i].toFixed(1)},${accelerometerData.x[i].toFixed(2)},${accelerometerData.y[i].toFixed(2)},${accelerometerData.z[i].toFixed(2)},${gpsData.speed[i].toFixed(1)}\n`;
+            }
+            const hash = await generateHash(csv);
+            document.getElementById('mu-hash').innerText = hash;
+            csv += `Hash SHA-256,${hash}\n`;
+            const blob = new Blob([csv], { type: 'text/csv' });
+            saveAs(blob, `acelerometro_${diligencias}.csv`);
+        }
+
+        async function downloadGPSData() {
+            const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
+            const matricula = document.getElementById('mu-matricula').value || 'N/A';
+            const now = new Date().toLocaleString('es-ES');
+            let csv = `Número de diligencias,${diligencias}\nMatrícula:${matricula}\n${now}\nDispositivo:${navigator.userAgent}\n`;
+            csv += 'Tiempo:${s},Latitud,Longitud,Velocidad:${km/h},Precisión:${m}\n';
+            for (let i = 0; i < gpsData.time.length; i++) {
+                csv += `${gpsData.time[i].toFixed(1)},${gpsData.lat[i].toFixed(6)},${gpsData.lng[i].toFixed(6)},${gpsData.speed[i].toFixed(1)},${gpsData.accuracy[i].toFixed(1)}\n`;
+            }
+            const hash = await generateHash(csv);
+            document.getElementById('mu-hash').innerText = hash;
+            csv += `Hash SHA-256,${hash}\n`;
+            const blob = new Blob([csv], { type: 'text/csv' });
+            saveAs(blob, `gps_${diligencias}.csv`);
+        }
+
+        async function downloadReactionData(tiempoReaccion, randomDelay, diligencias, matricula) {
+            const now = new Date().toLocaleString('es-ES');
+            let csv = `Número de diligencias,${diligencias}\nMatrícula:${matricula}\n${now}\nDispositivo:${navigator.userAgent}\n`;
+            csv += `Tiempo de reacción:${s},${tiempoReaccion.toFixed(3)}\nIntervalo:${s},${randomDelay.toFixed(3)}\n`;
+            const hash = await generateHash(csv);
+            document.getElementById('reaction-hash').innerText = hash;
+            csv += `Hash SHA-256:${hash}\n`;
+            const blob = new Blob([csv], { type: 'text/csv' });
+            saveAs(blob, `reaction_${diligencias}.csv`);
+            return hash;
+        }
+
+        async function generatePDFReport() {
+            const doc = new jsPDF();
+            const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
+            const matricula = document.getElementById('mu-matricula').value || 'N/A';
+            const now = new Date().toLocaleString('es-ES');
+            let y = 20;
+
+            doc.setFontSize(16);
+            doc.text('Informe de Análisis de Frenos', 105, y, { align: 'center' });
+            y += 10;
+            doc.setFontSize(12);
+            doc.text(`Número de diligencias: ${diligencias}`, 20, y);
+            y += 7;
+            doc.text(`Matrícula: ${matricula}`, 20, y);
+            y += 7;
+            doc.text(`Fecha y hora: ${now}`, 20, y);
+            y += 7;
+            doc.text(`Dispositivo: ${navigator.userAgent}`, 20, y);
+            y += 10;
+
+            doc.text('Datos de Acelerómetro:', 20, y);
+            y += 7;
+            doc.autoTable({
+                startY: y,
+                head: [['Tiempo (s)', 'Eje X (m/s²)', 'Eje Y (m/s²)', 'Eje Z (m/s²)', 'Velocidad (km/h)']],
+                body: accelerometerData.time.map((t, i) => [
+                    t.toFixed(1),
+                    accelerometerData.x[i].toFixed(2),
+                    accelerometerData.y[i].toFixed(2),
+                    accelerometerData.z[i].toFixed(2),
+                    gpsData.speed[i].toFixed(1)
+                ]).slice(0, 10)
+            });
+            y = doc.lastAutoTable.finalY + 10;
+
+            doc.text('Datos GPS:', 20, y);
+            y += 7;
+            doc.autoTable({
+                startY: y,
+                head: [['Tiempo (s)', 'Latitud', 'Longitud', 'Velocidad (km/h)', 'Precisión (m)']],
+                body: gpsData.time.map((t, i) => [
+                    t.toFixed(1),
+                    gpsData.lat[i].toFixed(6),
+                    gpsData.lng[i].toFixed(6),
+                    gpsData.speed[i].toFixed(1),
+                    gpsData.accuracy[i].toFixed(1)
+                ]).slice(0, 10)
+            });
+            y = doc.lastAutoTable.finalY + 10;
+
+            doc.text(`μ Automático: ${document.getElementById('mu-auto').innerText}`, 20, y);
+            y += 7;
+            doc.text(`μ Manual: ${document.getElementById('mu-manual').innerText}`, 20, y);
+            y += 10;
+
+            const hash = document.getElementById('mu-hash').innerText;
+            doc.text(`Hash de integridad: ${hash}`, 20, y);
+            y += 10;
+            doc.text('Certificado por: Análisis de Frenos', 20, y);
+            y += 10;
+
+            doc.save(`informe_${diligencias}.pdf`);
+        }
+
+        // Test de tiempo de reacción
+        let randomDelay = 0;
+        let isTestRunning = false;
+        let lightsOffTime = 0;
+
+        function iniciarTestReaccion(event) {
+            event.stopPropagation();
+            const luces = document.querySelectorAll('#reaccion .light');
+            const area = document.querySelector('#reaction-area');
+            const resultado = document.querySelector('#reaction-result');
+            const explicacion = document.querySelector('#reaction-explanation');
+            const startBtn = document.querySelector('#iniciar-test');
+            const captureBtn = document.querySelector('#capture-screenshot');
+            let indiceLuz = 1;
+
+            isTestRunning = true;
+            startBtn.disabled = true;
+            captureBtn.disabled = true;
+            resultado.innerText = '';
+            explicacion.innerText = '';
+            area.innerText = 'Prepárate...';
+            resultado.classList.remove('false-start');
+            luces.forEach(luz => luz.classList.remove('encendido'));
+
+            const intervaloLuces = setInterval(() => {
+                document.querySelectorAll(`.light[data-index="${indiceLuz}"]`).forEach(luz => luz.classList.add('encendido'));
+                indiceLuz++;
+                if (indiceLuz > 5) {
+                    clearInterval(intervaloLuces);
+                    randomDelay = Math.random() * (5000 - 500) + 500;
+                    setTimeout(() => {
+                        luces.forEach(luz => luz.classList.remove('encendido'));
+                        area.innerText = '¡Toca ahora!';
+                        lightsOffTime = performance.now();
+                        capturarTiempoReaccion();
+                    }, randomDelay);
+                }
+            }, 500);
+
+            const falseStartHandler = event => {
+                if (isTestRunning && !lightsOffTime) {
+                    isTestRunning = false;
+                    clearInterval(intervaloLuces);
+                    luces.forEach(luz => luz.classList.remove('encendido'));
+                    resultado.innerText = 'False Start: Interacción prematura detectada';
+                    resultado.classList.add('false-start');
+                    explicacion.innerText = 'El ensayo fue invalidado debido a una interacción antes de la desactivación de los indicadores luminosos.';
+                    startBtn.disabled = false;
+                    area.removeEventListener('click', falseStartHandler);
+                    area.removeEventListener('touchstart', falseStartHandler);
+                }
+            };
+
+            setTimeout(() => {
+                area.addEventListener('click', falseStartHandler);
+                area.addEventListener('touchstart', falseStartHandler);
+            }, 100);
+        }
+
+        function capturarTiempoReaccion() {
+            const area = document.querySelector('#reaction-area');
+            const resultado = document.querySelector('#reaction-result');
+            const explicacion = document.querySelector('#reaction-explanation');
+            const startBtn = document.querySelector('#iniciar-test');
+            const captureBtn = document.querySelector('#capture-screenshot');
+            const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
+            const matricula = document.getElementById('reaccion-matricula').value || '';
+
+            const captureReaction = async event => {
+                event.stopPropagation();
+                if (!isTestRunning) return;
+                isTestRunning = false;
+                const tiempoReaccion = (performance.now() - lightsOffTime) / 1000;
+                resultado.innerText = `Tiempo de reacción: ${tiempoReaccion.toFixed(3)} segundos`;
+                explicacion.innerHTML = `
+                    <strong>Descripción técnica del ensayo:</strong><br>
+                    El ensayo de tiempo de reacción, conforme a los estándares de evaluación de respuesta humana (ISO 23274), consiste en la activación secuencial y acumulativa de cinco pares de indicadores luminosos rojos, con un intervalo de 0,500 segundos por par, emulando el sistema de señalización de un semáforo de Fórmula 1. Cada par de indicadores permanece encendido tras su activación. Tras la activación del último par, se introduce un intervalo aleatorio entre 0,500 y 5,000 segundos antes de la desactivación simultánea de todos los indicadores. En este ensayo, el intervalo aleatorio fue de ${(randomDelay / 1000).toFixed(3)} segundos. El tiempo de reacción se mide desde la desactivación de los indicadores hasta la interacción del usuario con la pantalla táctil, con una precisión de ±1 milisegundo.<br><br>
+                    <strong>Parámetros del ensayo:</strong><br>
+                    - Número de diligencias: ${diligencias}<br>
+                    - Matrícula: ${matricula}<br>
+                    - Fecha y hora: ${new Date().toLocaleString('es-ES')}<br>
+                    - Dispositivo: ${navigator.userAgent}<br>
+                    - Tiempo de reacción registrado: ${tiempoReaccion.toFixed(3)} segundos<br>
+                    - Hash SHA-256: <span id="hash-placeholder">Calculando...</span>
+                `;
+                startBtn.disabled = false;
+                captureBtn.disabled = false;
+                area.innerText = 'Prepárate para interactuar nuevamente';
+                const hash = await downloadReactionData(tiempoReaccion, randomDelay / 1000, diligencias, matricula);
+                document.getElementById('hash-placeholder').innerText = hash;
+                area.removeEventListener('click', captureReaction);
+                area.removeEventListener('touchstart', captureReaction);
+            };
+
+            area.addEventListener('click', captureReaction, { once: true });
+            area.addEventListener('touchstart', captureReaction, { once: true });
+        }
+
+        // Captura de pantalla
+        document.getElementById('capture-screenshot').addEventListener('click', () => {
+            html2canvas(document.querySelector('#reaccion')).then(canvas => {
+                const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
+                canvas.toBlob(blob => {
+                    saveAs(blob, `resultado_reaccion-${diligencias}.png`);
+                });
+            });
+        });
+
+        // Iniciar el test
+        document.getElementById('iniciar-test').addEventListener('click', iniciarTestReaccion);
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js')
+                .then(() => console.log('Service Worker registrado'))
+                .catch(err => console.error('Error al registrar Service Worker:', err));
+        }
+    </script>
+</body>
+</html>

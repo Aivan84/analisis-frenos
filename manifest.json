@@ -1,0 +1,15 @@
+{
+    "name": "Análisis de Frenos",
+    "short_name": "Frenos",
+    "start_url": "/analisis-frenos/analisis-frenos-con-resaltado.html",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#2c3e50",
+    "icons": [
+        {
+            "src": "/icon.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
