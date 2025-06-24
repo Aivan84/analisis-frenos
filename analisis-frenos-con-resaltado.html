@@ -63,7 +63,7 @@
         </header>
 
         <!-- Nivelación -->
-        <section class="bg-white p-4 rounded-lg shadow mb-6">
+        <section class="bg-White p-4 rounded-lg shadow mb-6">
             <h2 class="text-lg font-semibold mb-2">Nivel</h2>
             <canvas id="levelCanvas" class="border border-gray-300"></canvas>
             <p class="text-center mt-2 text-sm">Alinea el dispositivo hasta que la burbuja esté centrada</p>
@@ -287,14 +287,20 @@
 
         // Export Functions
         function exportToCSV(data, filename) {
-            const csv = data.map(row => Object.values(row).join(',')).join('\n');
-            const blob = new Blob([csv], { type: 'text CSV' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
+            try {
+                const csv = data.map(row => Object.values(row).join(',')).join('\n');
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+                console.log(`CSV ${filename} generado correctamente`);
+            } catch (error) {
+                console.error('Error al exportar CSV:', error);
+                alert('Error al generar el CSV. Revisa la consola para más detalles.');
+            }
         }
 
         document.getElementById('exportAccelCSV').addEventListener('click', () => {
@@ -315,82 +321,122 @@
         });
 
         document.getElementById('exportPDF').addEventListener('click', () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont('Helvetica', 'normal');
-            doc.text('Informe de Análisis de Frenos', 20, 10);
-            doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20,  DrawingContext, 30, 10);
-            doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value}`, 20, 40);
-            doc.text(`Matrícula: ${document.getElementById('matriculaMu').value}`, 20, 50);
-            doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 60);
-            doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 70);
-            doc.save('informe_frenos.pdf');
-            document.getElementById('dataHash').textContent = 'hash-placeholder'; // Placeholder for hash
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFont('Helvetica', 'normal');
+                doc.text('Informe de Análisis de Frenos', 20, 10);
+                try {
+                    doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
+                } catch (imgError) {
+                    console.warn('No se pudo cargar la imagen para el PDF:', imgError);
+                    doc.text('No se pudo cargar el logo', 20, 30);
+                }
+                doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 40);
+                doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 50);
+                doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 60);
+                doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 70);
+                doc.save('informe_frenos.pdf');
+                document.getElementById('dataHash').textContent = 'hash-placeholder'; // Placeholder for hash
+                console.log('PDF generado correctamente');
+            } catch (error) {
+                console.error('Error al generar PDF:', error);
+                alert('Error al generar el PDF. Revisa la consola para más detalles.');
+            }
         });
 
         document.getElementById('exportExcel').addEventListener('click', () => {
-            const data = [
-                ['Diligencias', document.getElementById('diligenciasMu').value],
-                ['Matrícula', document.getElementById('matriculaMu').value],
-                ['μ Automático', document.getElementById('muAuto').textContent],
-                ['μ Manual', document.getElementById('muManual').textContent],
-                [],
-                ['Tiempo (s)', 'Eje X', 'Eje Y', 'Eje Z', 'Velocidad'],
-                ...accelData.time.map((t, i) => [
-                    t.toFixed(3),
-                    accelData.x[i].toFixed(3),
-                    accelData.y[i].toFixed(3),
-                    accelData.z[i].toFixed(3),
-                    accelData.speed[i].toFixed(3)
-                ])
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Informe');
-            XLSX.writeFile(wb, 'informe_frenos.xlsx');
-            document.getElementById('dataHash').textContent = 'hash-placeholder';
+            try {
+                const data = [
+                    ['Diligencias', document.getElementById('diligenciasMu').value || 'N/A'],
+                    ['Matrícula', document.getElementById('matriculaMu').value || 'N/A'],
+                    ['μ Automático', document.getElementById('muAuto').textContent],
+                    ['μ Manual', document.getElementById('muManual').textContent],
+                    [],
+                    ['Tiempo (s)', 'Eje X', 'Eje Y', 'Eje Z', 'Velocidad'],
+                    ...accelData.time.map((t, i) => [
+                        t.toFixed(3),
+                        accelData.x[i].toFixed(3),
+                        accelData.y[i].toFixed(3),
+                        accelData.z[i].toFixed(3),
+                        accelData.speed[i].toFixed(3)
+                    ])
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Informe');
+                XLSX.writeFile(wb, 'informe_frenos.xlsx');
+                document.getElementById('dataHash').textContent = 'hash-placeholder';
+                console.log('Excel generado correctamente');
+            } catch (error) {
+                console.error('Error al generar Excel:', error);
+                alert('Error al generar el Excel. Revisa la consola para más detalles.');
+            }
         });
 
         // Reaction Time Test
         document.getElementById('startReactionTest').addEventListener('click', () => {
-            const lights = [document.getElementById('light1'), document.getElementById('light2'), document.getElementById('light3'), document.getElementById('light4'), document.getElementById('light5')];
-            lights.forEach(light => light.classList.add('bg-red-500'));
-            const delay = Math.random() * 3000 + 1000;
-            setTimeout(() => {
-                lights.forEach(light => light.classList.remove('bg-red-500'));
-                const startTime = performance.now();
-                const handler = () => {
-                    const reactionTime = (performance.now() - startTime) / 1000;
-                    alert(`Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`);
-                    document.removeEventListener('click', handler);
-                };
-                document.addEventListener('click', handler, { once: true });
-            }, delay);
+            try {
+                const lights = [document.getElementById('light1'), document.getElementById('light2'), document.getElementById('light3'), document.getElementById('light4'), document.getElementById('light5')];
+                lights.forEach(light => light.classList.add('bg-red-500'));
+                const delay = Math.random() * 3000 + 1000;
+                setTimeout(() => {
+                    lights.forEach(light => light.classList.remove('bg-red-500'));
+                    const startTime = performance.now();
+                    const handler = () => {
+                        const reactionTime = (performance.now() - startTime) / 1000;
+                        alert(`Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`);
+                        document.removeEventListener('click', handler);
+                    };
+                    document.addEventListener('click', handler, { once: true });
+                }, delay);
+                console.log('Ensayo de reacción iniciado');
+            } catch (error) {
+                console.error('Error en el ensayo de reacción:', error);
+                alert('Error al iniciar el ensayo de reacción. Revisa la consola.');
+            }
         });
 
         document.getElementById('exportReactionPDF').addEventListener('click', () => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont('Helvetica', 'normal');
-            doc.text('Informe de Tiempo de Reacción', 20, 10);
-            doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
-            doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value}`, 20, 40);
-            doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value}`, 20, 50);
-            doc.save('informe_reaccion.pdf');
-            document.getElementById('reactionHash').textContent = 'hash-placeholder';
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                doc.setFont('Helvetica', 'normal');
+                doc.text('Informe de Tiempo de Reacción', 20, 10);
+                try {
+                    doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
+                } catch (imgError) {
+                    console.warn('No se pudo cargar la imagen para el PDF:', imgError);
+                    doc.text('No se pudo cargar el logo', 20, 30);
+                }
+                doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 40);
+                doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 50);
+                doc.save('informe_reaccion.pdf');
+                document.getElementById('reactionHash').textContent = 'hash-placeholder';
+                console.log('PDF de reacción generado correctamente');
+            } catch (error) {
+                console.error('Error al generar PDF de reacción:', error);
+                alert('Error al generar el PDF de reacción. Revisa la consola.');
+            }
         });
 
         document.getElementById('exportReactionExcel').addEventListener('click', () => {
-            const data = [
-                ['Diligencias', document.getElementById('diligenciasReaction').value],
-                ['Matrícula', document.getElementById('matriculaReaction').value],
-                ['Tiempo de Reacción', 'N/A'] // Placeholder
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Informe Reacción');
-            XLSX.writeFile(wb, 'informe_reaccion.xlsx');
-            document.getElementById('reactionHash').textContent = 'hash-placeholder';
+            try {
+                const data = [
+                    ['Diligencias', document.getElementById('diligenciasReaction').value || 'N/A'],
+                    ['Matrícula', document.getElementById('matriculaReaction').value || 'N/A'],
+                    ['Tiempo de Reacción', 'N/A'] // Placeholder
+                ];
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Informe Reacción');
+                XLSX.writeFile(wb, 'informe_reaccion.xlsx');
+                document.getElementById('reactionHash').textContent = 'hash-placeholder';
+                console.log('Excel de reacción generado correctamente');
+            } catch (error) {
+                console.error('Error al generar Excel de reacción:', error);
+                alert('Error al generar el Excel de reacción. Revisa la consola.');
+            }
         });
 
         document.getElementById('understood').addEventListener('click', () => {
