@@ -60,45 +60,51 @@
             @apply flex bg-gray-800 border-b border-gray-700 fixed top-0 w-full z-10; 
         }
         .tab-button { 
-            @apply flex-1 text-center py-3 text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors; 
+            @apply flex-1 text-center py-3 text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors text-sm md:text-base; 
         }
         .tab-button.active { 
             @apply bg-gray-700 text-white border-b-2 border-blue-500; 
         }
         .tab-content { 
-            @apply hidden flex-1 pt-16 overflow-hidden; 
+            @apply hidden flex-1 pt-16 overflow-auto; 
         }
         .tab-content.active { 
             @apply flex flex-col; 
         }
         .section { 
-            @apply bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex-1 flex flex-col; 
+            @apply bg-gray-800 p-4 md:p-6 rounded-lg shadow-lg border border-gray-700 flex-1 flex flex-col; 
         }
         canvas { 
-            @apply w-full h-auto max-h-[180px]; 
+            @apply w-full h-auto max-h-[180px] md:max-h-[250px]; 
         }
         .chart-container { 
-            @apply w-full h-[280px] max-h-[280px]; 
+            @apply w-full h-[200px] md:h-[280px] max-h-[200px] md:max-h-[280px]; 
         }
         .bubble { 
             transition: transform 0.1s ease-out; 
         }
         .button { 
-            @apply text-white px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500; 
+            @apply text-white px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm md:text-base w-full md:w-auto; 
         }
         .f1-traffic-light { 
-            @apply w-full max-w-[500px] h-24 flex justify-center items-center space-x-8 p-4 bg-gray-900 rounded-lg border border-gray-600 shadow-md; 
+            @apply w-full max-w-[300px] md:max-w-[500px] h-16 md:h-24 flex justify-center items-center space-x-4 md:space-x-8 p-2 md:p-4 bg-gray-900 rounded-lg border border-gray-600 shadow-md; 
         }
         .light-pair { 
-            @apply w-16 h-20 flex flex-col justify-around items-center; 
+            @apply w-12 md:w-16 h-16 md:h-20 flex flex-col justify-around items-center; 
         }
         .light { 
-            @apply w-10 h-10 rounded-full border-2 border-gray-500 transition-all duration-300 ease-in-out; 
+            @apply w-8 md:w-10 h-8 md:h-10 rounded-full border-2 border-gray-500 transition-all duration-300 ease-in-out; 
         }
         .light.off { @apply bg-gray-600; }
         .light.on { @apply bg-yellow-500; }
         input, button { 
             @apply focus:outline-none focus:ring-2 focus:ring-blue-500; 
+        }
+        @media (max-width: 768px) {
+            .tabs { @apply flex-col; }
+            .tab-button { @apply w-full; }
+            .section { @apply p-3; }
+            .button { @apply mb-2; }
         }
     </style>
 </head>
@@ -123,30 +129,25 @@
         <!-- Análisis del Coeficiente de Rozamiento -->
         <section id="coeficiente" class="tab-content">
             <div class="section">
-                <h2 class="text-xl font-semibold mb-4 text-white">Análisis del Coeficiente de Rozamiento (μ)</h2>
-                <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-white">Coeficiente de Rozamiento</h2>
+                <div class="mb-4">
                     <label class="block text-sm text-gray-400">Número de diligencias:</label>
                     <input type="text" id="diligenciasMu" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
-                    <label class="block text-sm mt-3 text-gray-400">Matrícula:</label>
+                    <label class="block text-sm mt-2 text-gray-400">Matrícula:</label>
                     <input type="text" id="matriculaMu" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
                 </div>
-                <div class="flex space-x-3 mb-6">
+                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
                     <button id="startRecording" class="button">Iniciar Grabación</button>
                     <button id="stopRecording" class="button bg-red-600 hover:bg-red-700" disabled>Detener Grabación</button>
                 </div>
-                <div class="mb-6">
+                <div class="mb-4">
                     <label class="text-sm text-gray-400"><input type="checkbox" id="showSpeed" checked> Mostrar velocidad</label>
                 </div>
                 <p id="recordingStatus" class="text-sm text-gray-400">Estado: No grabando</p>
-                <p id="gpsStatus" class="text-sm text-gray-400">Estado GPS: 📍 Esperando señal</p>
-                <p id="gpsCoords" class="text-sm text-gray-400">Coordenadas: N/A</p>
-                <p id="gpsSpeed" class="text-sm text-gray-400">Velocidad GPS: 0.0 km/h</p>
-                <p id="gpsAccuracy" class="text-sm text-gray-400">Precisión GPS: N/A</p>
-                <p id="gpsPoints" class="text-sm text-gray-400">Puntos GPS: 0</p>
                 <div class="chart-container">
                     <canvas id="accelChart"></canvas>
                 </div>
-                <table class="w-full text-sm mt-4 text-gray-400">
+                <table class="w-full text-sm mt-2 text-gray-400">
                     <tr><th>Eje X</th><td id="accelX">0</td></tr>
                     <tr><th>Eje Y</th><td id="accelY">0</td></tr>
                     <tr><th>Eje Z</th><td id="accelZ">0</td></tr>
@@ -154,15 +155,13 @@
                 </table>
                 <p class="text-sm mt-2 text-gray-400">μ Automático: <span id="muAuto">0.000</span></p>
                 <p class="text-sm text-gray-400">μ Manual: <span id="muManual">0.000</span></p>
-                <p class="text-sm text-gray-400">Selección: Haga clic y arrastre en la gráfica para seleccionar el tramo</p>
-                <div class="flex space-x-3 mt-6">
-                    <button id="exportAccelCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos Acelerómetro (CSV)</button>
-                    <button id="exportGPSCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos GPS (CSV)</button>
+                <p class="text-sm text-gray-400">Selección: Toca y arrastra en la gráfica para seleccionar el tramo</p>
+                <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mt-4">
                     <button id="exportPDF" class="button bg-purple-600 hover:bg-purple-700">Generar Informe PDF</button>
                     <button id="exportExcel" class="button bg-teal-600 hover:bg-teal-700">Generar Informe Excel</button>
                 </div>
                 <p class="text-sm mt-2 text-gray-400">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
-                <div class="mt-6">
+                <div class="mt-4">
                     <label class="text-gray-400"><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
                     <label class="text-gray-400"><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
                 </div>
@@ -172,14 +171,14 @@
         <!-- Ensayo de Tiempo de Reacción -->
         <section id="reaccion" class="tab-content">
             <div class="section">
-                <h2 class="text-xl font-semibold mb-4 text-white">Ensayo de Tiempo de Reacción</h2>
-                <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4 text-white">Tiempo de Reacción</h2>
+                <div class="mb-4">
                     <label class="block text-sm text-gray-400">Número de diligencias:</label>
                     <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
-                    <label class="block text-sm mt-3 text-gray-400">Matrícula:</label>
+                    <label class="block text-sm mt-2 text-gray-400">Matrícula:</label>
                     <input type="text" id="matriculaReaction" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
                 </div>
-                <div class="flex justify-center gap-6 mb-6">
+                <div class="flex justify-center mb-4">
                     <div class="f1-traffic-light">
                         <div class="light-pair"><div id="light1a" class="light off"></div><div id="light1b" class="light off"></div></div>
                         <div class="light-pair"><div id="light2a" class="light off"></div><div id="light2b" class="light off"></div></div>
@@ -189,10 +188,10 @@
                     </div>
                 </div>
                 <button id="startReactionTest" class="button">Iniciar Ensayo</button>
-                <button id="exportReactionPDF" class="button bg-purple-600 hover:bg-purple-700 mt-3">Exportar Informe PDF</button>
-                <button id="exportReactionExcel" class="button bg-teal-600 hover:bg-teal-700 mt-3">Exportar Informe Excel</button>
+                <button id="exportReactionPDF" class="button bg-purple-600 hover:bg-purple-700 mt-2">Exportar Informe PDF</button>
+                <button id="exportReactionExcel" class="button bg-teal-600 hover:bg-teal-700 mt-2">Exportar Informe Excel</button>
                 <p id="reactionResult" class="text-sm mt-2 text-gray-400 hidden">Tiempo de reacción: N/A segundos</p>
-                <p class="text-sm mt-2 text-gray-400">Prepárate para tocar la pantalla cuando las luces se apaguen</p>
+                <p class="text-sm mt-2 text-gray-400">Toca la pantalla cuando las luces se apaguen</p>
                 <p class="text-sm mt-2 text-gray-400">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
             </div>
         </section>
@@ -207,7 +206,7 @@
             document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
         }
 
-        // Leveling System
+        // Leveling System (usando deviceorientation)
         const levelCanvas = document.getElementById('levelCanvas');
         const levelCtx = levelCanvas.getContext('2d');
         let bubbleX = levelCanvas.width / 2;
@@ -242,17 +241,19 @@
         }
 
         window.addEventListener('deviceorientation', (e) => {
-            const gamma = e.gamma || 0;
-            const beta = e.beta || 0;
-            bubbleX = (levelCanvas.width / 2) + (gamma / 90) * (levelCanvas.width / 2 - 30);
-            bubbleY = (levelCanvas.height / 2) + (beta / 90) * (levelCanvas.height / 2 - 30);
-            bubbleX = Math.max(30, Math.min(levelCanvas.width - 30, bubbleX));
-            bubbleY = Math.max(30, Math.min(levelCanvas.height - 30, bubbleY));
+            if (window.innerWidth <= 768) {
+                const gamma = e.gamma || 0; // Rotación lateral
+                const beta = e.beta || 0;   // Inclinación frontal
+                bubbleX = (levelCanvas.width / 2) + (gamma / 90) * (levelCanvas.width / 2 - 30);
+                bubbleY = (levelCanvas.height / 2) + (beta / 90) * (levelCanvas.height / 2 - 30);
+                bubbleX = Math.max(30, Math.min(levelCanvas.width - 30, bubbleX));
+                bubbleY = Math.max(30, Math.min(levelCanvas.height - 30, bubbleY));
+            }
         });
 
         drawLevel();
 
-        // Accelerometer Chart with Navigation and Manual Selection
+        // Accelerometer Chart with Navigation and Manual Selection (usando devicemotion)
         const accelChartCtx = document.getElementById('accelChart').getContext('2d');
         let accelData = { x: [], y: [], z: [], time: [], speed: [] };
         let selectionStart = null;
@@ -284,6 +285,7 @@
                             pinch: { enabled: true },
                             wheel: { enabled: true },
                             mode: 'x',
+                            drag: { enabled: true },
                             onZoom: ({ chart }) => {
                                 const { min, max } = chart.scales.x;
                                 chart.options.scales.x.min = min;
@@ -304,6 +306,7 @@
                             selectionEnd = null;
                         }
                         updateSelection();
+                        calculateMu();
                     }
                 }
             }
@@ -341,7 +344,7 @@
         function recordAccelData() {
             if (!isRecording) return;
             window.addEventListener('devicemotion', (e) => {
-                if (!isRecording) return;
+                if (!isRecording || window.innerWidth > 768) return;
                 const time = (performance.now() - startTime) / 1000;
                 const accel = e.accelerationIncludingGravity || { x: 0, y: 0, z: 0 };
                 accelData.x.push(accel.x || 0);
@@ -372,8 +375,6 @@
                 const maxDecel = Math.max(...accelData.z.map(Math.abs));
                 document.getElementById('muAuto').textContent = maxDecel.toFixed(3);
             } else if (selectionStart !== null && selectionEnd !== null) {
-                const startTime = accelData.time[selectionStart];
-                const endTime = accelData.time[selectionEnd];
                 const zValues = accelData.z.slice(selectionStart, selectionEnd + 1);
                 const maxDecel = Math.max(...zValues.map(Math.abs));
                 document.getElementById('muManual').textContent = maxDecel.toFixed(3);
@@ -391,19 +392,6 @@
             });
             accelChart.update();
         }
-
-        // GPS Data
-        let gpsPoints = 0;
-        navigator.geolocation.watchPosition((pos) => {
-            gpsPoints++;
-            document.getElementById('gpsStatus').textContent = 'Estado GPS: 📍 Conectado';
-            document.getElementById('gpsCoords').textContent = `Coordenadas: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
-            document.getElementById('gpsSpeed').textContent = `Velocidad GPS: ${(pos.coords.speed * 3.6 || 0).toFixed(1)} km/h`;
-            document.getElementById('gpsAccuracy').textContent = `Precisión GPS: ${pos.coords.accuracy.toFixed(1)} m`;
-            document.getElementById('gpsPoints').textContent = `Puntos GPS: ${gpsPoints}`;
-        }, () => {
-            document.getElementById('gpsStatus').textContent = 'Estado GPS: 📍 Error';
-        }, { enableHighAccuracy: true });
 
         // Export Functions
         function exportToCSV(data, filename) {
@@ -423,28 +411,12 @@
             }
         }
 
-        document.getElementById('exportAccelCSV').addEventListener('click', () => {
-            const data = accelData.time.map((t, i) => ({
-                Time: t.toFixed(3),
-                X: accelData.x[i].toFixed(3),
-                Y: accelData.y[i].toFixed(3),
-                Z: accelData.z[i].toFixed(3),
-                Speed: accelData.speed[i].toFixed(3)
-            }));
-            exportToCSV(data, 'accelerometer_data.csv');
-        });
-
-        document.getElementById('exportGPSCSV').addEventListener('click', () => {
-            const data = [{ id: '1', lat: 'N/A', lon: 'N/A', speed: '0', accuracy: 'N/A' }];
-            exportToCSV(data, 'gps_data.csv');
-        });
-
         document.getElementById('exportPDF').addEventListener('click', () => {
             try {
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.setFont('Helvetica', 'normal');
-                doc.text('Informe de Análisis de Frenos', 20, 20);
+                doc.text('Informe de Coeficiente de Rozamiento', 20, 20);
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
                 img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
@@ -459,7 +431,7 @@
                     doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 90);
                     doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 100);
                     doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 110);
-                    doc.save('informe_frenos.pdf');
+                    doc.save('informe_rozamiento.pdf');
                     document.getElementById('dataHash').textContent = 'hash-placeholder';
                     console.log('PDF generado correctamente');
                 };
@@ -470,7 +442,7 @@
                     doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 90);
                     doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 100);
                     doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 110);
-                    doc.save('informe_frenos.pdf');
+                    doc.save('informe_rozamiento.pdf');
                     document.getElementById('dataHash').textContent = 'hash-placeholder';
                     console.log('PDF generado sin imagen');
                 };
@@ -500,7 +472,7 @@
                 const ws = XLSX.utils.aoa_to_sheet(data);
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Informe');
-                XLSX.writeFile(wb, 'informe_frenos.xlsx');
+                XLSX.writeFile(wb, 'informe_rozamiento.xlsx');
                 document.getElementById('dataHash').textContent = 'hash-placeholder';
                 console.log('Excel generado correctamente');
             } catch (error) {
@@ -509,7 +481,7 @@
             }
         });
 
-        // Reaction Time Test with F1 Traffic Lights
+        // Reaction Time Test with F1 Traffic Lights (usando touchstart)
         const lights = [
             [document.getElementById('light1a'), document.getElementById('light1b')],
             [document.getElementById('light2a'), document.getElementById('light2b')],
@@ -545,7 +517,7 @@
                                 document.removeEventListener('mousedown', handler);
                             };
                             document.addEventListener('touchstart', handler, { once: true });
-                            document.addEventListener('mousedown', handler, { once: true });
+                            document.addEventListener('mousedown', handler, { once: true }); // Fallback para escritorio
                         }, 1000); // Apagar tras 1 segundo
                     }
                 }, 1000); // 1 segundo entre cada par
@@ -574,7 +546,7 @@
                         doc.text('No se pudo cargar el logo', 20, 40);
                     }
                     doc.setFontSize(12);
-                    doc.text('Fecha: 24 de junio de 2025, 22:33 CEST', 20, 80);
+                    doc.text('Fecha: 24 de junio de 2025, 22:55 CEST', 20, 80);
                     doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 90);
                     doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 100);
                     doc.text('Descripción del Test:', 20, 110);
@@ -588,7 +560,7 @@
                 img.onerror = () => {
                     console.warn('No se pudo cargar la imagen para el PDF');
                     doc.setFontSize(12);
-                    doc.text('Fecha: 24 de junio de 2025, 22:33 CEST', 20, 80);
+                    doc.text('Fecha: 24 de junio de 2025, 22:55 CEST', 20, 80);
                     doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 90);
                     doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 100);
                     doc.text('Descripción del Test:', 20, 110);
