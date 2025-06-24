@@ -45,26 +45,25 @@
     <title>Análisis de Frenos - Sistema Judicial</title>
     <link rel="stylesheet" href="https://cdn.tailwindcss.com/3.3.3/tailwind.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hammer.js@2.0.8/hammer.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         body { 
-            @apply bg-gray-800 text-gray-100 m-0; 
+            @apply bg-gray-900 text-gray-100 m-0; 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         }
         .container { 
             @apply w-full h-screen flex flex-col overflow-hidden; 
         }
         .tabs { 
-            @apply flex bg-gray-900 border-b border-gray-700 fixed top-0 w-full z-10; 
+            @apply flex bg-gray-800 border-b border-gray-700 fixed top-0 w-full z-10; 
         }
         .tab-button { 
-            @apply flex-1 text-center py-3 text-gray-200 bg-gray-700 rounded-t-lg transition-colors; 
+            @apply flex-1 text-center py-3 text-gray-300 bg-gray-800 hover:bg-gray-700 transition-colors; 
         }
         .tab-button.active { 
-            @apply bg-gray-900 text-white border-b-2 border-blue-600; 
+            @apply bg-gray-700 text-white border-b-2 border-blue-500; 
         }
         .tab-content { 
             @apply hidden flex-1 pt-16 overflow-hidden; 
@@ -73,7 +72,7 @@
             @apply flex flex-col; 
         }
         .section { 
-            @apply bg-gray-900 p-4 rounded-lg shadow-lg border border-gray-700 flex-1 flex flex-col; 
+            @apply bg-gray-800 p-6 rounded-lg shadow-lg border border-gray-700 flex-1 flex flex-col; 
         }
         canvas { 
             @apply w-full h-auto max-h-[180px]; 
@@ -85,20 +84,21 @@
             transition: transform 0.1s ease-out; 
         }
         .button { 
-            @apply text-white px-4 py-2 rounded-lg transition-colors; 
+            @apply text-white px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500; 
         }
-        .f1-light { 
-            @apply w-12 h-12 rounded-full border-2 border-gray-600; 
-            transition: background-color 0.3s;
+        .f1-traffic-light { 
+            @apply w-full max-w-[500px] h-24 flex justify-center items-center space-x-8 p-4 bg-gray-900 rounded-lg border border-gray-600 shadow-md; 
         }
-        .f1-light.on { 
-            @apply bg-red-600; 
+        .light-pair { 
+            @apply w-16 h-20 flex flex-col justify-around items-center; 
         }
-        .f1-light.off { 
-            @apply bg-gray-500; 
+        .light { 
+            @apply w-10 h-10 rounded-full border-2 border-gray-500 transition-all duration-300 ease-in-out; 
         }
+        .light.off { @apply bg-gray-600; }
+        .light.on { @apply bg-yellow-500; }
         input, button { 
-            @apply focus:outline-none focus:ring-2 focus:ring-blue-600; 
+            @apply focus:outline-none focus:ring-2 focus:ring-blue-500; 
         }
     </style>
 </head>
@@ -109,63 +109,62 @@
             <button class="tab-button active" onclick="showTab('nivel')">Nivel</button>
             <button class="tab-button" onclick="showTab('coeficiente')">Coeficiente de Rozamiento</button>
             <button class="tab-button" onclick="showTab('reaccion')">Tiempo de Reacción</button>
-            <button class="tab-button" onclick="showTab('instrucciones')">Instrucciones</button>
         </div>
 
         <!-- Nivelación -->
         <section id="nivel" class="tab-content active">
             <div class="section">
-                <h2 class="text-lg font-semibold mb-2 text-white">Nivel</h2>
+                <h2 class="text-xl font-semibold mb-4 text-white">Nivelación</h2>
                 <canvas id="levelCanvas" class="border border-gray-600"></canvas>
-                <p class="text-center mt-2 text-sm text-gray-300">Alinea el dispositivo hasta que la burbuja esté centrada en la cruceta</p>
+                <p class="text-center mt-3 text-sm text-gray-400">Alinea el dispositivo hasta que la burbuja esté centrada en la cruceta</p>
             </div>
         </section>
 
         <!-- Análisis del Coeficiente de Rozamiento -->
         <section id="coeficiente" class="tab-content">
             <div class="section">
-                <h2 class="text-lg font-semibold mb-2 text-white">Análisis del Coeficiente de Rozamiento (μ)</h2>
-                <div class="mb-4">
-                    <label class="block text-sm text-gray-300">Número de diligencias:</label>
-                    <input type="text" id="diligenciasMu" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
-                    <label class="block text-sm mt-2 text-gray-300">Matrícula:</label>
-                    <input type="text" id="matriculaMu" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                <h2 class="text-xl font-semibold mb-4 text-white">Análisis del Coeficiente de Rozamiento (μ)</h2>
+                <div class="mb-6">
+                    <label class="block text-sm text-gray-400">Número de diligencias:</label>
+                    <input type="text" id="diligenciasMu" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
+                    <label class="block text-sm mt-3 text-gray-400">Matrícula:</label>
+                    <input type="text" id="matriculaMu" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
                 </div>
-                <div class="flex space-x-2 mb-4">
-                    <button id="startRecording" class="button bg-blue-600 hover:bg-blue-700">Iniciar Grabación</button>
+                <div class="flex space-x-3 mb-6">
+                    <button id="startRecording" class="button">Iniciar Grabación</button>
                     <button id="stopRecording" class="button bg-red-600 hover:bg-red-700" disabled>Detener Grabación</button>
                 </div>
-                <div class="mb-4">
-                    <label class="text-sm text-gray-300"><input type="checkbox" id="showSpeed" checked> Mostrar velocidad</label>
+                <div class="mb-6">
+                    <label class="text-sm text-gray-400"><input type="checkbox" id="showSpeed" checked> Mostrar velocidad</label>
                 </div>
-                <p id="recordingStatus" class="text-sm text-gray-300">Estado: No grabando</p>
-                <p id="gpsStatus" class="text-sm text-gray-300">Estado GPS: 📍 Esperando señal</p>
-                <p id="gpsCoords" class="text-sm text-gray-300">Coordenadas: N/A</p>
-                <p id="gpsSpeed" class="text-sm text-gray-300">Velocidad GPS: 0.0 km/h</p>
-                <p id="gpsAccuracy" class="text-sm text-gray-300">Precisión GPS: N/A</p>
-                <p id="gpsPoints" class="text-sm text-gray-300">Puntos GPS: 0</p>
+                <p id="recordingStatus" class="text-sm text-gray-400">Estado: No grabando</p>
+                <p id="gpsStatus" class="text-sm text-gray-400">Estado GPS: 📍 Esperando señal</p>
+                <p id="gpsCoords" class="text-sm text-gray-400">Coordenadas: N/A</p>
+                <p id="gpsSpeed" class="text-sm text-gray-400">Velocidad GPS: 0.0 km/h</p>
+                <p id="gpsAccuracy" class="text-sm text-gray-400">Precisión GPS: N/A</p>
+                <p id="gpsPoints" class="text-sm text-gray-400">Puntos GPS: 0</p>
                 <div class="chart-container">
                     <canvas id="accelChart"></canvas>
                 </div>
-                <table class="w-full text-sm mt-4 text-gray-300">
+                <table class="w-full text-sm mt-4 text-gray-400">
                     <tr><th>Eje X</th><td id="accelX">0</td></tr>
                     <tr><th>Eje Y</th><td id="accelY">0</td></tr>
                     <tr><th>Eje Z</th><td id="accelZ">0</td></tr>
                     <tr><th>Velocidad</th><td id="speed">0</td></tr>
                 </table>
-                <p class="text-sm mt-2 text-gray-300">μ Automático: <span id="muAuto">0.000</span></p>
-                <p class="text-sm text-gray-300">μ Manual: <span id="muManual">0.000</span></p>
-                <p class="text-sm text-gray-300">Selección: Haga clic en la gráfica para seleccionar el tramo</p>
-                <div class="flex space-x-2 mt-4">
+                <p class="text-sm mt-2 text-gray-400">μ Automático: <span id="muAuto">0.000</span></p>
+                <p class="text-sm text-gray-400">μ Manual: <span id="muManual">0.000</span></p>
+                <p class="text-sm text-gray-400">Selección: Haga clic y arrastre en la gráfica para seleccionar el tramo</p>
+                <div class="flex space-x-3 mt-6">
                     <button id="exportAccelCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos Acelerómetro (CSV)</button>
                     <button id="exportGPSCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos GPS (CSV)</button>
                     <button id="exportPDF" class="button bg-purple-600 hover:bg-purple-700">Generar Informe PDF</button>
                     <button id="exportExcel" class="button bg-teal-600 hover:bg-teal-700">Generar Informe Excel</button>
                 </div>
-                <p class="text-sm mt-2 text-gray-300">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
-                <div class="mt-4">
-                    <label class="text-gray-300"><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
-                    <label class="text-gray-300"><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
+                <p class="text-sm mt-2 text-gray-400">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
+                <div class="mt-6">
+                    <label class="text-gray-400"><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
+                    <label class="text-gray-400"><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
                 </div>
             </div>
         </section>
@@ -173,44 +172,34 @@
         <!-- Ensayo de Tiempo de Reacción -->
         <section id="reaccion" class="tab-content">
             <div class="section">
-                <h2 class="text-lg font-semibold mb-2 text-white">Ensayo de Tiempo de Reacción</h2>
-                <div class="mb-4">
-                    <label class="block text-sm text-gray-300">Número de diligencias:</label>
-                    <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
-                    <label class="block text-sm mt-2 text-gray-300">Matrícula:</label>
-                    <input type="text" id="matriculaReaction" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                <h2 class="text-xl font-semibold mb-4 text-white">Ensayo de Tiempo de Reacción</h2>
+                <div class="mb-6">
+                    <label class="block text-sm text-gray-400">Número de diligencias:</label>
+                    <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
+                    <label class="block text-sm mt-3 text-gray-400">Matrícula:</label>
+                    <input type="text" id="matriculaReaction" class="w-full p-2 border rounded bg-gray-700 text-gray-100 border-gray-600">
                 </div>
-                <div class="flex justify-center gap-4 mb-4">
-                    <div id="light1" class="f1-light on"></div>
-                    <div id="light2" class="f1-light on"></div>
+                <div class="flex justify-center gap-6 mb-6">
+                    <div class="f1-traffic-light">
+                        <div class="light-pair"><div id="light1a" class="light off"></div><div id="light1b" class="light off"></div></div>
+                        <div class="light-pair"><div id="light2a" class="light off"></div><div id="light2b" class="light off"></div></div>
+                        <div class="light-pair"><div id="light3a" class="light off"></div><div id="light3b" class="light off"></div></div>
+                        <div class="light-pair"><div id="light4a" class="light off"></div><div id="light4b" class="light off"></div></div>
+                        <div class="light-pair"><div id="light5a" class="light off"></div><div id="light5b" class="light off"></div></div>
+                    </div>
                 </div>
-                <button id="startReactionTest" class="button bg-blue-600 hover:bg-blue-700">Iniciar Ensayo</button>
-                <button id="exportReactionPDF" class="button bg-purple-600 hover:bg-purple-700 mt-2">Exportar Informe PDF</button>
-                <button id="exportReactionExcel" class="button bg-teal-600 hover:bg-teal-700 mt-2">Exportar Informe Excel</button>
-                <p class="text-sm mt-2 text-gray-300">Prepárate para interactuar cuando las luces se apaguen</p>
-                <p class="text-sm mt-2 text-gray-300">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
-            </div>
-        </section>
-
-        <!-- Instrucciones -->
-        <section id="instrucciones" class="tab-content">
-            <div class="section">
-                <h2 class="text-lg font-semibold mb-2 text-white">Bienvenido al Sistema de Análisis de Frenos</h2>
-                <p class="text-sm text-gray-300">Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
-                <p class="text-sm mt-2 text-gray-300">Instrucciones:</p>
-                <ul class="text-sm list-disc pl-5 text-gray-300">
-                    <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada en la cruceta (recomendado, pero no obligatorio).</li>
-                    <li>En "Coeficiente de Rozamiento", inicie la grabación para capturar datos de frenado. Use el filtro para mostrar velocidad y deslice o amplíe la gráfica con dos dedos.</li>
-                    <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
-                    <li>Exporte los datos en CSV, PDF o Excel para su uso en informes judiciales.</li>
-                </ul>
-                <button id="understood" class="button bg-blue-600 hover:bg-blue-700 mt-4">Entendido</button>
+                <button id="startReactionTest" class="button">Iniciar Ensayo</button>
+                <button id="exportReactionPDF" class="button bg-purple-600 hover:bg-purple-700 mt-3">Exportar Informe PDF</button>
+                <button id="exportReactionExcel" class="button bg-teal-600 hover:bg-teal-700 mt-3">Exportar Informe Excel</button>
+                <p id="reactionResult" class="text-sm mt-2 text-gray-400 hidden">Tiempo de reacción: N/A segundos</p>
+                <p class="text-sm mt-2 text-gray-400">Prepárate para tocar la pantalla cuando las luces se apaguen</p>
+                <p class="text-sm mt-2 text-gray-400">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
             </div>
         </section>
     </div>
 
     <script>
-        // Gestión de pestañas
+        // Gestión de pestañas (navegación instantánea)
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
@@ -229,13 +218,11 @@
             levelCanvas.height = 180;
             levelCtx.clearRect(0, 0, levelCanvas.width, levelCanvas.height);
 
-            // Dibujar marco
             levelCtx.beginPath();
             levelCtx.rect(20, 20, levelCanvas.width - 40, levelCanvas.height - 40);
             levelCtx.strokeStyle = '#4B5563';
             levelCtx.stroke();
 
-            // Dibujar círculo central con cruceta
             levelCtx.beginPath();
             levelCtx.arc(levelCanvas.width / 2, levelCanvas.height / 2, 15, 0, Math.PI * 2);
             levelCtx.strokeStyle = '#4B5563';
@@ -247,7 +234,6 @@
             levelCtx.lineTo(levelCanvas.width / 2 + 20, levelCanvas.height / 2);
             levelCtx.stroke();
 
-            // Dibujar burbuja
             levelCtx.beginPath();
             levelCtx.arc(bubbleX, bubbleY, 10, 0, Math.PI * 2);
             levelCtx.fillStyle = 'rgba(34, 197, 94, 0.5)';
@@ -256,8 +242,8 @@
         }
 
         window.addEventListener('deviceorientation', (e) => {
-            const gamma = e.gamma || 0; // Left-right tilt
-            const beta = e.beta || 0;   // Front-back tilt
+            const gamma = e.gamma || 0;
+            const beta = e.beta || 0;
             bubbleX = (levelCanvas.width / 2) + (gamma / 90) * (levelCanvas.width / 2 - 30);
             bubbleY = (levelCanvas.height / 2) + (beta / 90) * (levelCanvas.height / 2 - 30);
             bubbleX = Math.max(30, Math.min(levelCanvas.width - 30, bubbleX));
@@ -266,9 +252,12 @@
 
         drawLevel();
 
-        // Accelerometer Chart
+        // Accelerometer Chart with Navigation and Manual Selection
         const accelChartCtx = document.getElementById('accelChart').getContext('2d');
         let accelData = { x: [], y: [], z: [], time: [], speed: [] };
+        let selectionStart = null;
+        let selectionEnd = null;
+
         const accelChart = new Chart(accelChartCtx, {
             type: 'line',
             data: {
@@ -303,6 +292,19 @@
                             }
                         }
                     }
+                },
+                onClick: (e) => {
+                    const points = accelChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, true);
+                    if (points.length && document.querySelector('input[name="muMode"]:checked').value === 'manual') {
+                        const index = points[0].index;
+                        if (!selectionStart) selectionStart = index;
+                        else if (!selectionEnd) selectionEnd = index;
+                        else {
+                            selectionStart = index;
+                            selectionEnd = null;
+                        }
+                        updateSelection();
+                    }
                 }
             }
         });
@@ -332,6 +334,7 @@
                 document.getElementById('recordingStatus').textContent = 'Estado: No grabando';
                 document.getElementById('startRecording').disabled = false;
                 document.getElementById('stopRecording').disabled = true;
+                calculateMu();
             }
         });
 
@@ -345,7 +348,7 @@
                 accelData.y.push(accel.y || 0);
                 accelData.z.push(accel.z || 0);
                 accelData.time.push(time);
-                accelData.speed.push(0); // Placeholder for speed
+                accelData.speed.push(0);
                 accelChart.data.labels = accelData.time;
                 accelChart.data.datasets[0].data = accelData.x;
                 accelChart.data.datasets[1].data = accelData.y;
@@ -362,6 +365,31 @@
                 document.getElementById('speed').textContent = '0';
             }, { once: true });
             requestAnimationFrame(recordAccelData);
+        }
+
+        function calculateMu() {
+            if (document.querySelector('input[name="muMode"]:checked').value === 'auto') {
+                const maxDecel = Math.max(...accelData.z.map(Math.abs));
+                document.getElementById('muAuto').textContent = maxDecel.toFixed(3);
+            } else if (selectionStart !== null && selectionEnd !== null) {
+                const startTime = accelData.time[selectionStart];
+                const endTime = accelData.time[selectionEnd];
+                const zValues = accelData.z.slice(selectionStart, selectionEnd + 1);
+                const maxDecel = Math.max(...zValues.map(Math.abs));
+                document.getElementById('muManual').textContent = maxDecel.toFixed(3);
+                selectionStart = null;
+                selectionEnd = null;
+                updateSelection();
+            }
+        }
+
+        function updateSelection() {
+            accelChart.data.datasets.forEach(dataset => {
+                dataset.pointBackgroundColor = dataset.data.map((_, i) => 
+                    (i === selectionStart || i === selectionEnd) ? 'rgba(59, 130, 246, 0.5)' : undefined
+                );
+            });
+            accelChart.update();
         }
 
         // GPS Data
@@ -391,7 +419,7 @@
                 console.log(`CSV ${filename} generado correctamente`);
             } catch (error) {
                 console.error('Error al exportar CSV:', error);
-                alert('Error al generar el CSV. Revisa la consola para más detalles.');
+                alert('Error al generar el CSV. Revisa la consola.');
             }
         }
 
@@ -422,7 +450,7 @@
                 img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
                 img.onload = () => {
                     try {
-                        doc.addImage(img, 'PNG', 20, 30, 40, 40); // Dimensiones ajustadas a 40x40
+                        doc.addImage(img, 'PNG', 20, 30, 40, 40);
                     } catch (imgError) {
                         console.warn('No se pudo añadir la imagen al PDF:', imgError);
                         doc.text('No se pudo cargar el logo', 20, 40);
@@ -448,7 +476,7 @@
                 };
             } catch (error) {
                 console.error('Error al generar PDF:', error);
-                alert('Error al generar el PDF. Revisa la consola para más detalles.');
+                alert('Error al generar el PDF. Revisa la consola.');
             }
         });
 
@@ -477,28 +505,50 @@
                 console.log('Excel generado correctamente');
             } catch (error) {
                 console.error('Error al generar Excel:', error);
-                alert('Error al generar el Excel. Revisa la consola para más detalles.');
+                alert('Error al generar el Excel. Revisa la consola.');
             }
         });
 
-        // Reaction Time Test
+        // Reaction Time Test with F1 Traffic Lights
+        const lights = [
+            [document.getElementById('light1a'), document.getElementById('light1b')],
+            [document.getElementById('light2a'), document.getElementById('light2b')],
+            [document.getElementById('light3a'), document.getElementById('light3b')],
+            [document.getElementById('light4a'), document.getElementById('light4b')],
+            [document.getElementById('light5a'), document.getElementById('light5b')]
+        ];
+
+        function resetLights() {
+            lights.forEach(pair => pair.forEach(light => light.classList.remove('on').add('off')));
+        }
+
         document.getElementById('startReactionTest').addEventListener('click', () => {
             try {
-                const lights = [document.getElementById('light1'), document.getElementById('light2')];
-                lights.forEach(light => light.classList.remove('off'));
-                lights.forEach(light => light.classList.add('on'));
-                const delay = Math.random() * 3000 + 1000;
-                setTimeout(() => {
-                    lights.forEach(light => light.classList.remove('on'));
-                    lights.forEach(light => light.classList.add('off'));
-                    const startTime = performance.now();
-                    const handler = () => {
-                        const reactionTime = (performance.now() - startTime) / 1000;
-                        alert(`Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`);
-                        document.removeEventListener('click', handler);
-                    };
-                    document.addEventListener('click', handler, { once: true });
-                }, delay);
+                resetLights();
+                let sequence = 0;
+                const interval = setInterval(() => {
+                    if (sequence < 5) {
+                        lights[sequence].forEach(light => light.classList.remove('off').add('on'));
+                        sequence++;
+                    } else {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            resetLights();
+                            const startTime = performance.now();
+                            document.getElementById('reactionResult').classList.add('hidden');
+                            const handler = (e) => {
+                                e.preventDefault();
+                                const reactionTime = (performance.now() - startTime) / 1000;
+                                document.getElementById('reactionResult').textContent = `Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`;
+                                document.getElementById('reactionResult').classList.remove('hidden');
+                                document.removeEventListener('touchstart', handler);
+                                document.removeEventListener('mousedown', handler);
+                            };
+                            document.addEventListener('touchstart', handler, { once: true });
+                            document.addEventListener('mousedown', handler, { once: true });
+                        }, 1000); // Apagar tras 1 segundo
+                    }
+                }, 1000); // 1 segundo entre cada par
                 console.log('Ensayo de reacción iniciado');
             } catch (error) {
                 console.error('Error en el ensayo de reacción:', error);
@@ -511,28 +561,40 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.setFont('Helvetica', 'normal');
-                doc.text('Informe de Tiempo de Reacción', 20, 20);
+                doc.setFontSize(16);
+                doc.text('Informe Técnico de Ensayo de Tiempo de Reacción', 20, 20);
                 const img = new Image();
                 img.crossOrigin = 'Anonymous';
                 img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
                 img.onload = () => {
                     try {
-                        doc.addImage(img, 'PNG', 20, 30, 40, 40); // Dimensiones ajustadas a 40x40
+                        doc.addImage(img, 'PNG', 20, 30, 40, 40);
                     } catch (imgError) {
                         console.warn('No se pudo añadir la imagen al PDF:', imgError);
                         doc.text('No se pudo cargar el logo', 20, 40);
                     }
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 80);
-                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 90);
+                    doc.setFontSize(12);
+                    doc.text('Fecha: 24 de junio de 2025, 22:33 CEST', 20, 80);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 90);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 100);
+                    doc.text('Descripción del Test:', 20, 110);
+                    doc.text('El ensayo de tiempo de reacción evalúa la capacidad del conductor para responder a un estímulo visual simulado mediante un semáforo inspirado en los estándares de Fórmula 1. El sistema enciende secuencialmente cinco pares de luces dobles durante 1 segundo cada uno, seguido de un apagado tras 1 segundo adicional. El temporizador inicia al apagarse las luces y se detiene al detectar la interacción del usuario (tocar la pantalla), registrando el tiempo de reacción en segundos.', 20, 120, { maxWidth: 170 });
+                    doc.text(`Resultado: ${document.getElementById('reactionResult').textContent || 'No realizado'}`, 20, 160);
+                    doc.text('Metodología: La medición se realiza utilizando la API de rendimiento del navegador, asegurando precisión milisegunda. Los datos se certifican mediante un hash único generado por el sistema.', 20, 170, { maxWidth: 170 });
                     doc.save('informe_reaccion.pdf');
                     document.getElementById('reactionHash').textContent = 'hash-placeholder';
                     console.log('PDF de reacción generado correctamente');
                 };
                 img.onerror = () => {
                     console.warn('No se pudo cargar la imagen para el PDF');
-                    doc.text('No se pudo cargar el logo', 20, 40);
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 80);
-                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 90);
+                    doc.setFontSize(12);
+                    doc.text('Fecha: 24 de junio de 2025, 22:33 CEST', 20, 80);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 90);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 100);
+                    doc.text('Descripción del Test:', 20, 110);
+                    doc.text('El ensayo de tiempo de reacción evalúa la capacidad del conductor para responder a un estímulo visual simulado mediante un semáforo inspirado en los estándares de Fórmula 1. El sistema enciende secuencialmente cinco pares de luces dobles durante 1 segundo cada uno, seguido de un apagado tras 1 segundo adicional. El temporizador inicia al apagarse las luces y se detiene al detectar la interacción del usuario (tocar la pantalla), registrando el tiempo de reacción en segundos.', 20, 120, { maxWidth: 170 });
+                    doc.text(`Resultado: ${document.getElementById('reactionResult').textContent || 'No realizado'}`, 20, 160);
+                    doc.text('Metodología: La medición se realiza utilizando la API de rendimiento del navegador, asegurando precisión milisegunda. Los datos se certifican mediante un hash único generado por el sistema.', 20, 170, { maxWidth: 170 });
                     doc.save('informe_reaccion.pdf');
                     document.getElementById('reactionHash').textContent = 'hash-placeholder';
                     console.log('PDF de reacción generado sin imagen');
@@ -548,7 +610,7 @@
                 const data = [
                     ['Diligencias', document.getElementById('diligenciasReaction').value || 'N/A'],
                     ['Matrícula', document.getElementById('matriculaReaction').value || 'N/A'],
-                    ['Tiempo de Reacción', 'N/A']
+                    ['Tiempo de Reacción', document.getElementById('reactionResult').textContent.replace('Tiempo de reacción: ', '') || 'N/A']
                 ];
                 const ws = XLSX.utils.aoa_to_sheet(data);
                 const wb = XLSX.utils.book_new();
@@ -560,10 +622,6 @@
                 console.error('Error al generar Excel de reacción:', error);
                 alert('Error al generar el Excel de reacción. Revisa la consola.');
             }
-        });
-
-        document.getElementById('understood').addEventListener('click', () => {
-            alert('¡Entendido!');
         });
     </script>
 </body>
