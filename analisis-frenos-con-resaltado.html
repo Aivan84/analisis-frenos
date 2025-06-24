@@ -41,7 +41,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Análisis de Frenos - Sistema Judicial</title>
     <link rel="stylesheet" href="https://cdn.tailwindcss.com/3.3.3/tailwind.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -50,112 +50,162 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
-        canvas { width: 100%; height: 200px; }
-        .chart-container { position: relative; width: 100%; height: 300px; overflow-x: auto; }
-        .bubble { transition: transform 0.1s ease-out; }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .tab-button { @apply bg-gray-200 px-4 py-2 rounded-t-lg; }
-        .tab-button.active { @apply bg-white border-b-2 border-blue-500; }
+        body { 
+            @apply bg-gray-800 text-gray-100 m-0; 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .container { 
+            @apply w-full h-screen flex flex-col overflow-hidden; 
+        }
+        .tabs { 
+            @apply flex bg-gray-900 border-b border-gray-700 fixed top-0 w-full z-10; 
+        }
+        .tab-button { 
+            @apply flex-1 text-center py-3 text-gray-200 bg-gray-700 rounded-t-lg transition-colors; 
+        }
+        .tab-button.active { 
+            @apply bg-gray-900 text-white border-b-2 border-blue-600; 
+        }
+        .tab-content { 
+            @apply hidden flex-1 pt-16 overflow-hidden; 
+        }
+        .tab-content.active { 
+            @apply flex flex-col; 
+        }
+        .section { 
+            @apply bg-gray-900 p-4 rounded-lg shadow-lg border border-gray-700 flex-1 flex flex-col; 
+        }
+        canvas { 
+            @apply w-full h-auto max-h-[180px]; 
+        }
+        .chart-container { 
+            @apply w-full h-[280px] max-h-[280px]; 
+        }
+        .bubble { 
+            transition: transform 0.1s ease-out; 
+        }
+        .button { 
+            @apply text-white px-4 py-2 rounded-lg transition-colors; 
+        }
+        .f1-light { 
+            @apply w-12 h-12 rounded-full border-2 border-gray-600; 
+            transition: background-color 0.3s;
+        }
+        .f1-light.on { 
+            @apply bg-red-600; 
+        }
+        .f1-light.off { 
+            @apply bg-gray-500; 
+        }
+        input, button { 
+            @apply focus:outline-none focus:ring-2 focus:ring-blue-600; 
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
-    <div class="container mx-auto p-4">
-        <header class="text-center mb-6">
-            <h1 class="text-2xl font-bold">Análisis de Frenos - Sistema Judicial</h1>
-            <p class="text-sm">Versión 1.0.0</p>
-        </header>
-
+<body>
+    <div class="container">
         <!-- Pestañas -->
-        <div class="flex border-b mb-4">
+        <div class="tabs">
             <button class="tab-button active" onclick="showTab('nivel')">Nivel</button>
             <button class="tab-button" onclick="showTab('coeficiente')">Coeficiente de Rozamiento</button>
             <button class="tab-button" onclick="showTab('reaccion')">Tiempo de Reacción</button>
+            <button class="tab-button" onclick="showTab('instrucciones')">Instrucciones</button>
         </div>
 
         <!-- Nivelación -->
-        <section id="nivel" class="tab-content active bg-white p-4 rounded-lg shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2">Nivel</h2>
-            <canvas id="levelCanvas" class="border border-gray-300"></canvas>
-            <p class="text-center mt-2 text-sm">Alinea el dispositivo hasta que la burbuja esté centrada en la cruceta</p>
+        <section id="nivel" class="tab-content active">
+            <div class="section">
+                <h2 class="text-lg font-semibold mb-2 text-white">Nivel</h2>
+                <canvas id="levelCanvas" class="border border-gray-600"></canvas>
+                <p class="text-center mt-2 text-sm text-gray-300">Alinea el dispositivo hasta que la burbuja esté centrada en la cruceta</p>
+            </div>
         </section>
 
         <!-- Análisis del Coeficiente de Rozamiento -->
-        <section id="coeficiente" class="tab-content bg-white p-4 rounded-lg shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2">Análisis del Coeficiente de Rozamiento (μ)</h2>
-            <div class="mb-4">
-                <label class="block text-sm">Número de diligencias:</label>
-                <input type="text" id="diligenciasMu" class="w-full p-2 border rounded">
-                <label class="block text-sm mt-2">Matrícula:</label>
-                <input type="text" id="matriculaMu" class="w-full p-2 border rounded">
-            </div>
-            <div class="flex space-x-2 mb-4">
-                <button id="startRecording" class="bg-blue-500 text-white px-4 py-2 rounded">Iniciar Grabación</button>
-                <button id="stopRecording" class="bg-red-500 text-white px-4 py-2 rounded" disabled>Detener Grabación</button>
-            </div>
-            <p id="recordingStatus" class="text-sm">Estado: No grabando</p>
-            <p id="gpsStatus" class="text-sm">Estado GPS: 📍 Esperando señal</p>
-            <p id="gpsCoords" class="text-sm">Coordenadas: N/A</p>
-            <p id="gpsSpeed" class="text-sm">Velocidad GPS: 0.0 km/h</p>
-            <p id="gpsAccuracy" class="text-sm">Precisión GPS: N/A</p>
-            <p id="gpsPoints" class="text-sm">Puntos GPS: 0</p>
-            <div class="chart-container">
-                <canvas id="accelChart"></canvas>
-            </div>
-            <table class="w-full text-sm mt-4">
-                <tr><th>Eje X</th><td id="accelX">0</td></tr>
-                <tr><th>Eje Y</th><td id="accelY">0</td></tr>
-                <tr><th>Eje Z</th><td id="accelZ">0</td></tr>
-                <tr><th>Velocidad</th><td id="speed">0</td></tr>
-            </table>
-            <p class="text-sm mt-2">μ Automático: <span id="muAuto">0.000</span></p>
-            <p class="text-sm">μ Manual: <span id="muManual">0.000</span></p>
-            <p class="text-sm">Selección: Haga clic en la gráfica para seleccionar el tramo</p>
-            <div class="flex space-x-2 mt-4">
-                <button id="exportAccelCSV" class="bg-green-500 text-white px-4 py-2 rounded">Exportar Datos Acelerómetro (CSV)</button>
-                <button id="exportGPSCSV" class="bg-green-500 text-white px-4 py-2 rounded">Exportar Datos GPS (CSV)</button>
-                <button id="exportPDF" class="bg-purple-500 text-white px-4 py-2 rounded">Generar Informe PDF</button>
-                <button id="exportExcel" class="bg-teal-500 text-white px-4 py-2 rounded">Generar Informe Excel</button>
-            </div>
-            <p class="text-sm mt-2">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
-            <div class="mt-4">
-                <label><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
-                <label><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
+        <section id="coeficiente" class="tab-content">
+            <div class="section">
+                <h2 class="text-lg font-semibold mb-2 text-white">Análisis del Coeficiente de Rozamiento (μ)</h2>
+                <div class="mb-4">
+                    <label class="block text-sm text-gray-300">Número de diligencias:</label>
+                    <input type="text" id="diligenciasMu" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                    <label class="block text-sm mt-2 text-gray-300">Matrícula:</label>
+                    <input type="text" id="matriculaMu" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                </div>
+                <div class="flex space-x-2 mb-4">
+                    <button id="startRecording" class="button bg-blue-600 hover:bg-blue-700">Iniciar Grabación</button>
+                    <button id="stopRecording" class="button bg-red-600 hover:bg-red-700" disabled>Detener Grabación</button>
+                </div>
+                <div class="mb-4">
+                    <label class="text-sm text-gray-300"><input type="checkbox" id="showSpeed" checked> Mostrar velocidad</label>
+                </div>
+                <p id="recordingStatus" class="text-sm text-gray-300">Estado: No grabando</p>
+                <p id="gpsStatus" class="text-sm text-gray-300">Estado GPS: 📍 Esperando señal</p>
+                <p id="gpsCoords" class="text-sm text-gray-300">Coordenadas: N/A</p>
+                <p id="gpsSpeed" class="text-sm text-gray-300">Velocidad GPS: 0.0 km/h</p>
+                <p id="gpsAccuracy" class="text-sm text-gray-300">Precisión GPS: N/A</p>
+                <p id="gpsPoints" class="text-sm text-gray-300">Puntos GPS: 0</p>
+                <div class="chart-container">
+                    <canvas id="accelChart"></canvas>
+                </div>
+                <table class="w-full text-sm mt-4 text-gray-300">
+                    <tr><th>Eje X</th><td id="accelX">0</td></tr>
+                    <tr><th>Eje Y</th><td id="accelY">0</td></tr>
+                    <tr><th>Eje Z</th><td id="accelZ">0</td></tr>
+                    <tr><th>Velocidad</th><td id="speed">0</td></tr>
+                </table>
+                <p class="text-sm mt-2 text-gray-300">μ Automático: <span id="muAuto">0.000</span></p>
+                <p class="text-sm text-gray-300">μ Manual: <span id="muManual">0.000</span></p>
+                <p class="text-sm text-gray-300">Selección: Haga clic en la gráfica para seleccionar el tramo</p>
+                <div class="flex space-x-2 mt-4">
+                    <button id="exportAccelCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos Acelerómetro (CSV)</button>
+                    <button id="exportGPSCSV" class="button bg-green-600 hover:bg-green-700">Exportar Datos GPS (CSV)</button>
+                    <button id="exportPDF" class="button bg-purple-600 hover:bg-purple-700">Generar Informe PDF</button>
+                    <button id="exportExcel" class="button bg-teal-600 hover:bg-teal-700">Generar Informe Excel</button>
+                </div>
+                <p class="text-sm mt-2 text-gray-300">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
+                <div class="mt-4">
+                    <label class="text-gray-300"><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
+                    <label class="text-gray-300"><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
+                </div>
             </div>
         </section>
 
         <!-- Ensayo de Tiempo de Reacción -->
-        <section id="reaccion" class="tab-content bg-white p-4 rounded-lg shadow mb-6">
-            <h2 class="text-lg font-semibold mb-2">Ensayo de Tiempo de Reacción</h2>
-            <div class="mb-4">
-                <label class="block text-sm">Número de diligencias:</label>
-                <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded">
-                <label class="block text-sm mt-2">Matrícula:</label>
-                <input type="text" id="matriculaReaction" class="w-full p-2 border rounded">
+        <section id="reaccion" class="tab-content">
+            <div class="section">
+                <h2 class="text-lg font-semibold mb-2 text-white">Ensayo de Tiempo de Reacción</h2>
+                <div class="mb-4">
+                    <label class="block text-sm text-gray-300">Número de diligencias:</label>
+                    <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                    <label class="block text-sm mt-2 text-gray-300">Matrícula:</label>
+                    <input type="text" id="matriculaReaction" class="w-full p-2 border rounded bg-gray-800 text-gray-100 border-gray-600">
+                </div>
+                <div class="flex justify-center gap-4 mb-4">
+                    <div id="light1" class="f1-light on"></div>
+                    <div id="light2" class="f1-light on"></div>
+                </div>
+                <button id="startReactionTest" class="button bg-blue-600 hover:bg-blue-700">Iniciar Ensayo</button>
+                <button id="exportReactionPDF" class="button bg-purple-600 hover:bg-purple-700 mt-2">Exportar Informe PDF</button>
+                <button id="exportReactionExcel" class="button bg-teal-600 hover:bg-teal-700 mt-2">Exportar Informe Excel</button>
+                <p class="text-sm mt-2 text-gray-300">Prepárate para interactuar cuando las luces se apaguen</p>
+                <p class="text-sm mt-2 text-gray-300">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
             </div>
-            <div class="grid grid-cols-2 gap-2 mb-4">
-                <div id="light1" class="h-8 bg-red-500 rounded"></div>
-                <div id="light2" class="h-8 bg-red-500 rounded"></div>
-            </div>
-            <button id="startReactionTest" class="bg-blue-500 text-white px-4 py-2 rounded">Iniciar Ensayo</button>
-            <button id="exportReactionPDF" class="bg-purple-500 text-white px-4 py-2 rounded mt-2">Exportar Informe PDF</button>
-            <button id="exportReactionExcel" class="bg-teal-500 text-white px-4 py-2 rounded mt-2">Exportar Informe Excel</button>
-            <p class="text-sm mt-2">Prepárate para interactuar cuando las luces se apaguen</p>
-            <p class="text-sm mt-2">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
         </section>
 
         <!-- Instrucciones -->
-        <section class="bg-white p-4 rounded-lg shadow">
-            <h2 class="text-lg font-semibold mb-2">Bienvenido al Sistema de Análisis de Frenos</h2>
-            <p class="text-sm">Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
-            <p class="text-sm mt-2">Instrucciones:</p>
-            <ul class="text-sm list-disc pl-5">
-                <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada en la cruceta (recomendado, pero no obligatorio).</li>
-                <li>En "Coeficiente de Rozamiento", inicie la grabación para capturar datos de frenado. Deslice la gráfica para ver más datos o use dos dedos para ajustar el rango.</li>
-                <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
-                <li>Exporte los datos en CSV, PDF o Excel para su uso en informes judiciales.</li>
-            </ul>
-            <button id="understood" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Entendido</button>
+        <section id="instrucciones" class="tab-content">
+            <div class="section">
+                <h2 class="text-lg font-semibold mb-2 text-white">Bienvenido al Sistema de Análisis de Frenos</h2>
+                <p class="text-sm text-gray-300">Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
+                <p class="text-sm mt-2 text-gray-300">Instrucciones:</p>
+                <ul class="text-sm list-disc pl-5 text-gray-300">
+                    <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada en la cruceta (recomendado, pero no obligatorio).</li>
+                    <li>En "Coeficiente de Rozamiento", inicie la grabación para capturar datos de frenado. Use el filtro para mostrar velocidad y deslice o amplíe la gráfica con dos dedos.</li>
+                    <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
+                    <li>Exporte los datos en CSV, PDF o Excel para su uso en informes judiciales.</li>
+                </ul>
+                <button id="understood" class="button bg-blue-600 hover:bg-blue-700 mt-4">Entendido</button>
+            </div>
         </section>
     </div>
 
@@ -176,19 +226,19 @@
 
         function drawLevel() {
             levelCanvas.width = levelCanvas.clientWidth;
-            levelCanvas.height = 200;
+            levelCanvas.height = 180;
             levelCtx.clearRect(0, 0, levelCanvas.width, levelCanvas.height);
 
             // Dibujar marco
             levelCtx.beginPath();
             levelCtx.rect(20, 20, levelCanvas.width - 40, levelCanvas.height - 40);
-            levelCtx.strokeStyle = '#000';
+            levelCtx.strokeStyle = '#4B5563';
             levelCtx.stroke();
 
             // Dibujar círculo central con cruceta
             levelCtx.beginPath();
             levelCtx.arc(levelCanvas.width / 2, levelCanvas.height / 2, 15, 0, Math.PI * 2);
-            levelCtx.strokeStyle = '#000';
+            levelCtx.strokeStyle = '#4B5563';
             levelCtx.stroke();
             levelCtx.beginPath();
             levelCtx.moveTo(levelCanvas.width / 2, levelCanvas.height / 2 - 20);
@@ -200,7 +250,7 @@
             // Dibujar burbuja
             levelCtx.beginPath();
             levelCtx.arc(bubbleX, bubbleY, 10, 0, Math.PI * 2);
-            levelCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+            levelCtx.fillStyle = 'rgba(34, 197, 94, 0.5)';
             levelCtx.fill();
             requestAnimationFrame(drawLevel);
         }
@@ -224,23 +274,26 @@
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Eje X', data: [], borderColor: 'red', borderWidth: 1, fill: false, pointRadius: 0 },
-                    { label: 'Eje Y', data: [], borderColor: 'green', borderWidth: 1, fill: false, pointRadius: 0 },
-                    { label: 'Eje Z', data: [], borderColor: 'blue', borderWidth: 1, fill: false, pointRadius: 0 }
+                    { label: 'Eje X', data: [], borderColor: '#EF4444', borderWidth: 1, fill: false, pointRadius: 0 },
+                    { label: 'Eje Y', data: [], borderColor: '#22C55E', borderWidth: 1, fill: false, pointRadius: 0 },
+                    { label: 'Eje Z', data: [], borderColor: '#3B82F6', borderWidth: 1, fill: false, pointRadius: 0 },
+                    { label: 'Velocidad', data: [], borderColor: '#F59E0B', borderWidth: 1, fill: false, pointRadius: 0, hidden: false }
                 ]
             },
             options: {
                 responsive: true,
+                maintainAspectRatio: false,
                 scales: {
-                    x: { type: 'linear', min: 0, max: 2.5, title: { display: true, text: 'Tiempo (s)' } },
-                    y: { title: { display: true, text: 'Aceleración (m/s²)' } }
+                    x: { type: 'linear', min: 0, max: 2.5, title: { display: true, text: 'Tiempo (s)', color: '#D1D5DB' } },
+                    y: { title: { display: true, text: 'Aceleración (m/s²) / Velocidad (km/h)', color: '#D1D5DB' } }
                 },
                 plugins: {
-                    legend: { display: true, position: 'top' },
+                    legend: { display: true, position: 'top', labels: { color: '#D1D5DB' } },
                     zoom: {
-                        pan: { enabled: true, mode: 'x' },
+                        pan: { enabled: true, mode: 'x', modifierKey: null },
                         zoom: {
                             pinch: { enabled: true },
+                            wheel: { enabled: true },
                             mode: 'x',
                             onZoom: ({ chart }) => {
                                 const { min, max } = chart.scales.x;
@@ -252,6 +305,11 @@
                     }
                 }
             }
+        });
+
+        document.getElementById('showSpeed').addEventListener('change', (e) => {
+            accelChart.data.datasets[3].hidden = !e.target.checked;
+            accelChart.update();
         });
 
         let isRecording = false;
@@ -292,6 +350,7 @@
                 accelChart.data.datasets[0].data = accelData.x;
                 accelChart.data.datasets[1].data = accelData.y;
                 accelChart.data.datasets[2].data = accelData.z;
+                accelChart.data.datasets[3].data = accelData.speed;
                 if (time > accelChart.options.scales.x.max) {
                     accelChart.options.scales.x.min += 0.1;
                     accelChart.options.scales.x.max += 0.1;
@@ -363,15 +422,15 @@
                 img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
                 img.onload = () => {
                     try {
-                        doc.addImage(img, 'PNG', 20, 30, 30, 10);
+                        doc.addImage(img, 'PNG', 20, 30, 40, 40); // Dimensiones ajustadas a 40x40
                     } catch (imgError) {
                         console.warn('No se pudo añadir la imagen al PDF:', imgError);
                         doc.text('No se pudo cargar el logo', 20, 40);
                     }
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 50);
-                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 60);
-                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 70);
-                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 80);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 80);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 90);
+                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 100);
+                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 110);
                     doc.save('informe_frenos.pdf');
                     document.getElementById('dataHash').textContent = 'hash-placeholder';
                     console.log('PDF generado correctamente');
@@ -379,10 +438,10 @@
                 img.onerror = () => {
                     console.warn('No se pudo cargar la imagen para el PDF');
                     doc.text('No se pudo cargar el logo', 20, 40);
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 50);
-                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 60);
-                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 70);
-                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 80);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 80);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 90);
+                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 100);
+                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 110);
                     doc.save('informe_frenos.pdf');
                     document.getElementById('dataHash').textContent = 'hash-placeholder';
                     console.log('PDF generado sin imagen');
@@ -426,10 +485,12 @@
         document.getElementById('startReactionTest').addEventListener('click', () => {
             try {
                 const lights = [document.getElementById('light1'), document.getElementById('light2')];
-                lights.forEach(light => light.classList.add('bg-red-500'));
+                lights.forEach(light => light.classList.remove('off'));
+                lights.forEach(light => light.classList.add('on'));
                 const delay = Math.random() * 3000 + 1000;
                 setTimeout(() => {
-                    lights.forEach(light => light.classList.remove('bg-red-500'));
+                    lights.forEach(light => light.classList.remove('on'));
+                    lights.forEach(light => light.classList.add('off'));
                     const startTime = performance.now();
                     const handler = () => {
                         const reactionTime = (performance.now() - startTime) / 1000;
@@ -456,13 +517,13 @@
                 img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
                 img.onload = () => {
                     try {
-                        doc.addImage(img, 'PNG', 20, 30, 30, 10);
+                        doc.addImage(img, 'PNG', 20, 30, 40, 40); // Dimensiones ajustadas a 40x40
                     } catch (imgError) {
                         console.warn('No se pudo añadir la imagen al PDF:', imgError);
                         doc.text('No se pudo cargar el logo', 20, 40);
                     }
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 50);
-                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 60);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 80);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 90);
                     doc.save('informe_reaccion.pdf');
                     document.getElementById('reactionHash').textContent = 'hash-placeholder';
                     console.log('PDF de reacción generado correctamente');
@@ -470,8 +531,8 @@
                 img.onerror = () => {
                     console.warn('No se pudo cargar la imagen para el PDF');
                     doc.text('No se pudo cargar el logo', 20, 40);
-                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 50);
-                    doc.text(`Matrícula: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 60);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 80);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 90);
                     doc.save('informe_reaccion.pdf');
                     document.getElementById('reactionHash').textContent = 'hash-placeholder';
                     console.log('PDF de reacción generado sin imagen');
@@ -487,7 +548,7 @@
                 const data = [
                     ['Diligencias', document.getElementById('diligenciasReaction').value || 'N/A'],
                     ['Matrícula', document.getElementById('matriculaReaction').value || 'N/A'],
-                    ['Tiempo de Reacción', 'N/A'] // Placeholder
+                    ['Tiempo de Reacción', 'N/A']
                 ];
                 const ws = XLSX.utils.aoa_to_sheet(data);
                 const wb = XLSX.utils.book_new();
