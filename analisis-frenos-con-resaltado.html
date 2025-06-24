@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -225,27 +264,20 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            margin: 1rem 0;
+            margin: 1rem auto;
             position: relative;
             width: 80vw;
             height: 80vw;
             max-width: 300px;
             max-height: 300px;
-            background-color: #f0f0f0;
-            border: 2px solid #333;
-            border-radius: 0.5rem;
+            background: radial-gradient(circle, #f0f0f0 0%, #d3d3d3 100%);
+            border: 3px solid #333;
+            border-radius: 50%;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 0 10px rgba(0, 0, 0, 0.1);
         }
         #bubble-level {
             width: 100%;
             height: 100%;
-        }
-        .bubble-status {
-            margin-top: 1rem;
-            font-size: 1rem;
-            font-weight: bold;
-        }
-        .bubble-status.levelled {
-            color: #2ecc71;
         }
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -299,9 +331,6 @@
             <div class="bubble-level-container">
                 <canvas id="bubble-level"></canvas>
             </div>
-            <p class="bubble-status" id="bubble-status">Ajuste el dispositivo para nivelar</p>
-            <button onclick="calibrateSensors()">Calibrar Sensores</button>
-            <p class="status">Estado: <span id="sensor-status">Esperando calibración</span></p>
         </div>
 
         <div id="mu" class="tab-content">
@@ -367,7 +396,7 @@
                 </div>
             </div>
             <button id="iniciar-test">Iniciar Ensayo</button>
-            <button id="capture-screenshot" disabled>Exportar Captura</button>
+            <button id="export-pdf" disabled>Exportar Informe PDF</button>
             <div class="reaction-area" id="reaction-area">Prepárate para interactuar cuando las luces se apaguen</div>
             <div class="reaction-result" id="reaction-result"></div>
             <div class="reaction-explanation" id="reaction-explanation"></div>
@@ -380,7 +409,7 @@
                 <p>Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
                 <p><strong>Instrucciones:</strong></p>
                 <ul>
-                    <li>Nivele el dispositivo en la pestaña "Nivel" hasta que la burbuja sea verde.</li>
+                    <li>En "Nivel", utilice la burbuja como guía para alinear el dispositivo (recomendado, pero no obligatorio).</li>
                     <li>En "Análisis μ", inicie la grabación para capturar datos de frenado.</li>
                     <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
                     <li>Exporte los datos en CSV o PDF para su uso en informes judiciales.</li>
@@ -409,6 +438,7 @@
         let calibration = { x: 0, y: 0, z: 9.81, angleX: 0, angleY: 0 };
         let watchId = null;
         let isLevelled = false;
+        let angleBuffer = { x: [], y: [] }; // Buffer para suavizado
 
         // Actualizar fecha y hora
         function updateDateTime() {
@@ -461,7 +491,6 @@
                 console.log('Inicializando nivel de burbuja...');
                 if (!bubbleCanvas || !bubbleCtx) {
                     console.error('Error: Canvas o contexto no disponible');
-                    document.getElementById('bubble-status').innerText = 'Canvas no disponible';
                     return;
                 }
                 resizeBubbleCanvas();
@@ -481,7 +510,7 @@
                 }
                 bubbleCanvas.width = container.clientWidth;
                 bubbleCanvas.height = container.clientHeight;
-                bubbleRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 20;
+                bubbleRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 10;
                 console.log('Canvas redimensionado:', bubbleCanvas.width, bubbleCanvas.height);
                 drawBubble();
             } catch (error) {
@@ -496,60 +525,61 @@
                     return;
                 }
                 bubbleCtx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
-                bubbleCtx.beginPath();
-                bubbleCtx.strokeStyle = '#666';
-                bubbleCtx.lineWidth = 1;
-                bubbleCtx.moveTo(bubbleCanvas.width / 2, 0);
-                bubbleCtx.lineTo(bubbleCanvas.width / 2, bubbleCanvas.height);
-                bubbleCtx.moveTo(0, bubbleCanvas.height / 2);
-                bubbleCtx.lineTo(bubbleCanvas.width, bubbleCanvas.height / 2);
-                bubbleCtx.stroke();
-                const maxTilt = 10;
-                let angleX = calibration.angleX || 0;
-                let angleY = calibration.angleY || 0;
+
+                // Fondo del nivel
                 const centerX = bubbleCanvas.width / 2;
                 const centerY = bubbleCanvas.height / 2;
-                const maxOffset = (bubbleCanvas.width / 2) - bubbleRadius;
-                const offsetX = (angleX / maxTilt) * maxOffset;
-                const offsetY = (angleY / maxTilt) * maxOffset;
+                const outerRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 2 - 5;
                 bubbleCtx.beginPath();
-                bubbleCtx.arc(centerX + offsetX, centerY + offsetY, bubbleRadius, 0, 2 * Math.PI);
-                bubbleCtx.fillStyle = isLevelled ? '#2ecc71' : '#e74c3c';
-                bubbleCtx.fill();
+                bubbleCtx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
                 bubbleCtx.strokeStyle = '#333';
                 bubbleCtx.lineWidth = 2;
                 bubbleCtx.stroke();
-                console.log('Burbuja dibujada:', { angleX, angleY, isLevelled });
+
+                // Líneas de referencia
+                bubbleCtx.beginPath();
+                bubbleCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+                bubbleCtx.lineWidth = 1;
+                bubbleCtx.moveTo(centerX, 0);
+                bubbleCtx.lineTo(centerX, bubbleCanvas.height);
+                bubbleCtx.moveTo(0, centerY);
+                bubbleCtx.lineTo(bubbleCanvas.width, centerY);
+                bubbleCtx.stroke();
+
+                // Burbuja
+                const maxTilt = 15;
+                const smoothedAngleX = angleBuffer.x.length ? angleBuffer.x.reduce((sum, val) => sum + val, 0) / angleBuffer.x.length : 0;
+                const smoothedAngleY = angleBuffer.y.length ? angleBuffer.y.reduce((sum, val) => sum + val, 0) / angleBuffer.y.length : 0;
+                const maxOffset = outerRadius - bubbleRadius;
+                const offsetX = (smoothedAngleX / maxTilt) * maxOffset;
+                const offsetY = (smoothedAngleY / maxTilt) * maxOffset;
+
+                bubbleCtx.beginPath();
+                bubbleCtx.arc(centerX + offsetX, centerY + offsetY, bubbleRadius, 0, 2 * Math.PI);
+                const gradient = bubbleCtx.createRadialGradient(
+                    centerX + offsetX - bubbleRadius / 2,
+                    centerY + offsetY - bubbleRadius / 2,
+                    bubbleRadius / 4,
+                    centerX + offsetX,
+                    centerY + offsetY,
+                    bubbleRadius
+                );
+                gradient.addColorStop(0, isLevelled ? '#2ecc71' : '#e74c3c');
+                gradient.addColorStop(1, isLevelled ? '#27ae60' : '#c0392b');
+                bubbleCtx.fillStyle = gradient;
+                bubbleCtx.fill();
+                bubbleCtx.strokeStyle = '#333';
+                bubbleCtx.lineWidth = 1;
+                bubbleCtx.stroke();
+                console.log('Burbuja dibujada:', { angleX: smoothedAngleX, angleY: smoothedAngleY, isLevelled });
             } catch (error) {
                 console.error('Error en drawBubble:', error);
-            }
-        }
-
-        // Calibración de sensores
-        function calibrateSensors() {
-            try {
-                console.log('Calibrando sensores...');
-                document.getElementById('sensor-status').innerText = 'Calibrando...';
-                window.addEventListener('devicemotion', function handler(event) {
-                    calibration.x = event.accelerationIncludingGravity?.x || 0;
-                    calibration.y = event.accelerationIncludingGravity?.y || 0;
-                    calibration.z = event.accelerationIncludingGravity?.z || 9.81;
-                    document.getElementById('sensor-status').innerText = 'Calibración completada';
-                    console.log('Calibración completada:', calibration);
-                    initBubbleLevel();
-                    window.removeEventListener('devicemotion', handler);
-                }, { passive: true, once: true });
-            } catch (error) {
-                console.error('Error en calibrateSensors:', error);
-                document.getElementById('sensor-status').innerText = 'Error al calibrar';
             }
         }
 
         // Verificar compatibilidad de sensores
         if (!window.DeviceMotionEvent) {
             console.warn('DeviceMotionEvent no soportado');
-            document.getElementById('bubble-status').innerText = 'Sensores de movimiento no soportados';
-            document.getElementById('sensor-status').innerText = 'Sensores no disponibles';
         } else {
             window.addEventListener('devicemotion', event => {
                 try {
@@ -558,9 +588,12 @@
                     const z = (event.accelerationIncludingGravity?.z || 0) - calibration.z;
                     calibration.angleX = Math.atan2(y, z) * (180 / Math.PI);
                     calibration.angleY = Math.atan2(x, z) * (180 / Math.PI);
-                    isLevelled = Math.abs(calibration.angleX) < 0.5 && Math.abs(calibration.angleY) < 0.5;
-                    document.getElementById('bubble-status').innerText = isLevelled ? '✓ Nivelado' : 'Ajuste el dispositivo';
-                    document.getElementById('bubble-status').classList.toggle('levelled', isLevelled);
+                    // Suavizado: mantener los últimos 5 valores
+                    angleBuffer.x.push(calibration.angleX);
+                    angleBuffer.y.push(calibration.angleY);
+                    if (angleBuffer.x.length > 5) angleBuffer.x.shift();
+                    if (angleBuffer.y.length > 5) angleBuffer.y.shift();
+                    isLevelled = Math.abs(calibration.angleX) < 1 && Math.abs(calibration.angleY) < 1;
                     drawBubble();
                     console.log('DeviceMotion:', { x, y, z, angleX: calibration.angleX, angleY: calibration.angleY, isLevelled });
                     if (isRecording) {
@@ -572,6 +605,7 @@
                         accelerometerData.time.push(time);
                         updateGraph();
                         calculateAutoMU();
+                        console.log('Datos grabados:', { time, x, y, z });
                     }
                 } catch (error) {
                     console.error('Error en DeviceMotionEvent:', error);
@@ -601,7 +635,7 @@
                         document.getElementById('gps-accuracy').innerText = `${position.coords.accuracy.toFixed(1)} m`;
                         document.getElementById('gps-points').innerText = gpsData.time.length;
                         document.getElementById('gps-status').innerText = '📍 Señal activa';
-                        console.log('GPS actualizado:', { lat: position.coords.latitude, lon: position.coords.longitude });
+                        console.log('GPS actualizado:', { lat: position.coords.latitude, lon: position.coords.longitude, speed: position.coords.speed });
                     },
                     error => {
                         console.error('Error GPS:', error.message);
@@ -680,7 +714,7 @@
                 muChart.data.datasets[2].hidden = !document.getElementById('show-eje-z').checked;
                 muChart.data.datasets[3].hidden = !document.getElementById('show-velocidad').checked;
                 muChart.update();
-                console.log('Gráfica actualizada');
+                console.log('Gráfica actualizada con', accelerometerData.time.length, 'puntos');
             } catch (error) {
                 console.error('Error en updateGraph:', error);
             }
@@ -744,11 +778,6 @@
         document.getElementById('start-recording').addEventListener('click', () => {
             try {
                 console.log('Iniciando grabación...');
-                if (!isLevelled) {
-                    alert('Por favor, nivela el dispositivo en la pestaña "Nivel" antes de iniciar la grabación.');
-                    console.warn('Grabación bloqueada: Dispositivo no nivelado');
-                    return;
-                }
                 if (!window.DeviceMotionEvent || !navigator.geolocation) {
                     alert('Los sensores no están disponibles en este dispositivo.');
                     console.warn('Sensores no disponibles');
@@ -776,7 +805,7 @@
                 document.getElementById('stop-recording').disabled = true;
                 document.getElementById('recording-status').innerText = 'Grabación finalizada';
                 calculateAutoMU();
-                console.log('Grabación detenida');
+                console.log('Grabación detenida con', accelerometerData.time.length, 'puntos');
             } catch (error) {
                 console.error('Error al detener grabación:', error);
             }
@@ -904,6 +933,7 @@
         let randomDelay = 0;
         let isTestRunning = false;
         let lightsOffTime = 0;
+        let reactionTime = 0;
 
         function iniciarTestReaccion(event) {
             try {
@@ -914,12 +944,12 @@
                 const resultado = document.querySelector('#reaction-result');
                 const explicacion = document.querySelector('#reaction-explanation');
                 const startBtn = document.querySelector('#iniciar-test');
-                const captureBtn = document.querySelector('#capture-screenshot');
+                const exportBtn = document.querySelector('#export-pdf');
                 let indiceLuz = 1;
 
                 isTestRunning = true;
                 startBtn.disabled = true;
-                captureBtn.disabled = true;
+                exportBtn.disabled = true;
                 resultado.innerText = '';
                 explicacion.innerText = '';
                 area.innerText = 'Prepárate...';
@@ -973,7 +1003,7 @@
                 const resultado = document.querySelector('#reaction-result');
                 const explicacion = document.querySelector('#reaction-explanation');
                 const startBtn = document.querySelector('#iniciar-test');
-                const captureBtn = document.querySelector('#capture-screenshot');
+                const exportBtn = document.querySelector('#export-pdf');
                 const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
                 const matricula = document.getElementById('reaccion-matricula').value || '';
 
@@ -981,8 +1011,8 @@
                     event.stopPropagation();
                     if (!isTestRunning) return;
                     isTestRunning = false;
-                    const tiempoReaccion = (performance.now() - lightsOffTime) / 1000;
-                    resultado.innerText = `Tiempo de reacción: ${tiempoReaccion.toFixed(3)} segundos`;
+                    reactionTime = (performance.now() - lightsOffTime) / 1000;
+                    resultado.innerText = `Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`;
                     explicacion.innerHTML = `
                         <strong>Descripción técnica del ensayo:</strong><br>
                         El ensayo de tiempo de reacción, conforme a los estándares de evaluación de respuesta humana (ISO 23274), consiste en la activación secuencial y acumulativa de cinco pares de indicadores luminosos rojos, con un intervalo de 0,500 segundos por par, emulando el sistema de señalización de un semáforo de Fórmula 1. Cada par de indicadores permanece encendido tras su activación. Tras la activación del último par, se introduce un intervalo aleatorio entre 0,500 y 5,000 segundos antes de la desactivación simultánea de todos los indicadores. En este ensayo, el intervalo aleatorio fue de ${(randomDelay / 1000).toFixed(3)} segundos. El tiempo de reacción se mide desde la desactivación de los indicadores hasta la interacción del usuario con la pantalla táctil, con una precisión de ±1 milisegundo.<br><br>
@@ -991,15 +1021,16 @@
                         - Matrícula: ${matricula}<br>
                         - Fecha y hora: ${new Date().toLocaleString('es-ES')}<br>
                         - Dispositivo: ${navigator.userAgent}<br>
-                        - Tiempo de reacción registrado: ${tiempoReaccion.toFixed(3)} segundos<br>
-                        - Hash SHA-256: <span id="hash-placeholder">Calculando...</span>
+                        - Tiempo de reacción registrado: ${reactionTime.toFixed(3)} segundos
                     `;
                     startBtn.disabled = false;
-                    captureBtn.disabled = false;
+                    exportBtn.disabled = false;
                     area.innerText = 'Prepárate para interactuar nuevamente';
-                    const hash = await downloadReactionData(tiempoReaccion, randomDelay / 1000, diligencias, matricula);
-                    document.getElementById('hash-placeholder').innerText = hash;
-                    console.log('Tiempo de reacción capturado:', tiempoReaccion);
+                    const hash = await generateHash(
+                        `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${new Date().toLocaleString('es-ES')}\nDispositivo,${navigator.userAgent}\nTiempo de reacción (s),${reactionTime.toFixed(3)}\nIntervalo aleatorio (s),${(randomDelay / 1000).toFixed(3)}`
+                    );
+                    document.getElementById('reaction-hash').innerText = hash;
+                    console.log('Tiempo de reacción capturado:', reactionTime);
                     area.removeEventListener('click', captureReaction);
                     area.removeEventListener('touchstart', captureReaction);
                 };
@@ -1011,43 +1042,98 @@
             }
         }
 
-        async function downloadReactionData(tiempoReaccion, randomDelay, diligencias, matricula) {
+        async function exportReactionPDF() {
             try {
-                console.log('Exportando datos de reacción...');
+                console.log('Generando PDF de tiempo de reacción...');
+                if (!jsPDF) {
+                    console.error('jsPDF no disponible');
+                    alert('Error: No se pudo generar el PDF. Verifica la consola.');
+                    return;
+                }
+                const doc = new jsPDF();
+                const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
+                const matricula = document.getElementById('reaccion-matricula').value || 'N/A';
                 const now = new Date().toLocaleString('es-ES');
-                let csv = `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${now}\nDispositivo,${navigator.userAgent}\n`;
-                csv += `Tiempo de reacción (s),${tiempoReaccion.toFixed(3)}\nIntervalo aleatorio (s),${randomDelay.toFixed(3)}\n`;
-                const hash = await generateHash(csv);
-                document.getElementById('reaction-hash').innerText = hash;
-                csv += `Hash SHA-256,${hash}\n`;
-                const blob = new Blob([csv], { type: 'text/csv' });
-                saveAs(blob, `reaccion_${diligencias.replace(/[/\s]/g, '_')}.csv`);
-                console.log('Datos de reacción exportados');
-                return hash;
+                let y = 20;
+
+                // Añadir ícono
+                try {
+                    const img = new Image();
+                    img.src = '/icon.png';
+                    await new Promise(resolve => {
+                        img.onload = () => {
+                            doc.addImage(img, 'PNG', 80, y, 50, 50);
+                            resolve();
+                        };
+                        img.onerror = () => {
+                            console.warn('No se pudo cargar el ícono');
+                            resolve();
+                        };
+                    });
+                    y += 60;
+                } catch (error) {
+                    console.error('Error al añadir ícono:', error);
+                }
+
+                // Encabezado
+                doc.setFontSize(16);
+                doc.text('Informe de Ensayo de Tiempo de Reacción', 105, y, { align: 'center' });
+                y += 10;
+                doc.setFontSize(12);
+                doc.text('Análisis de Frenos - Sistema Judicial', 105, y, { align: 'center' });
+                y += 10;
+
+                // Metadatos
+                doc.text(`Número de diligencias: ${diligencias}`, 20, y);
+                y += 7;
+                doc.text(`Matrícula: ${matricula}`, 20, y);
+                y += 7;
+                doc.text(`Fecha y hora: ${now}`, 20, y);
+                y += 7;
+                doc.text(`Dispositivo: ${navigator.userAgent}`, 20, y);
+                y += 10;
+
+                // Descripción técnica
+                doc.text('Descripción técnica del ensayo:', 20, y);
+                y += 7;
+                doc.setFontSize(10);
+                doc.text(
+                    'El ensayo de tiempo de reacción, conforme a los estándares de evaluación de respuesta humana (ISO 23274), consiste en la activación secuencial y acumulativa de cinco pares de indicadores luminosos rojos, con un intervalo de 0,500 segundos por par, emulando el sistema de señalización de un semáforo de Fórmula 1. Cada par de indicadores permanece encendido tras su activación. Tras la activación del último par, se introduce un intervalo aleatorio entre 0,500 y 5,000 segundos antes de la desactivación simultánea de todos los indicadores. En este ensayo, el intervalo aleatorio fue de ' + (randomDelay / 1000).toFixed(3) + ' segundos. El tiempo de reacción se mide desde la desactivación de los indicadores hasta la interacción del usuario con la pantalla táctil, con una precisión de ±1 milisegundo.',
+                    20, y, { maxWidth: 170 }
+                );
+                y += 40;
+
+                // Resultados
+                doc.setFontSize(12);
+                doc.text('Resultados del ensayo:', 20, y);
+                y += 7;
+                doc.autoTable({
+                    startY: y,
+                    head: [['Parámetro', 'Valor']],
+                    body: [
+                        ['Tiempo de reacción (s)', reactionTime.toFixed(3)],
+                        ['Intervalo aleatorio (s)', (randomDelay / 1000).toFixed(3)],
+                        ['Hash SHA-256', document.getElementById('reaction-hash').innerText]
+                    ]
+                });
+                y = doc.lastAutoTable.finalY + 10;
+
+                // Certificación
+                doc.text('Certificado por: Análisis de Frenos', 20, y);
+                y += 7;
+                doc.setFontSize(8);
+                doc.text('Este informe ha sido generado automáticamente por el sistema de Análisis de Frenos para uso en procedimientos judiciales.', 20, y, { maxWidth: 170 });
+
+                doc.save(`reaccion_${diligencias.replace(/[/\s]/g, '_')}.pdf`);
+                console.log('PDF de reacción exportado');
             } catch (error) {
-                console.error('Error en downloadReactionData:', error);
-                return 'N/A';
+                console.error('Error en exportReactionPDF:', error);
             }
         }
 
-        // Captura de pantalla
-        document.getElementById('capture-screenshot').addEventListener('click', () => {
-            try {
-                console.log('Capturando pantalla...');
-                html2canvas(document.querySelector('#reaccion')).then(canvas => {
-                    const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
-                    canvas.toBlob(blob => {
-                        saveAs(blob, `resultado_reaccion_${diligencias.replace(/[/\s]/g, '_')}.png`);
-                        console.log('Captura exportada');
-                    });
-                });
-            } catch (error) {
-                console.error('Error en capture-screenshot:', error);
-            }
-        });
-
         // Iniciar el test
         document.getElementById('iniciar-test').addEventListener('click', iniciarTestReaccion);
+        document.getElementById('export-pdf').addEventListener('click', exportReactionPDF);
 
         // Inicializar nivel al cargar
         try {
@@ -1056,7 +1142,7 @@
             console.error('Error al inicializar nivel al cargar:', error);
         }
 
-        // Registrar Service Worker (deshabilitado temporalmente para depuración)
+        // Registrar Service Worker (deshabilitado para depuración)
         /*
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js')
