@@ -53,6 +53,10 @@
         canvas { width: 100%; height: 200px; }
         .chart-container { position: relative; width: 100%; height: 300px; overflow-x: auto; }
         .bubble { transition: transform 0.1s ease-out; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button { @apply bg-gray-200 px-4 py-2 rounded-t-lg; }
+        .tab-button.active { @apply bg-white border-b-2 border-blue-500; }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -62,15 +66,22 @@
             <p class="text-sm">Versión 1.0.0</p>
         </header>
 
+        <!-- Pestañas -->
+        <div class="flex border-b mb-4">
+            <button class="tab-button active" onclick="showTab('nivel')">Nivel</button>
+            <button class="tab-button" onclick="showTab('coeficiente')">Coeficiente de Rozamiento</button>
+            <button class="tab-button" onclick="showTab('reaccion')">Tiempo de Reacción</button>
+        </div>
+
         <!-- Nivelación -->
-        <section class="bg-White p-4 rounded-lg shadow mb-6">
+        <section id="nivel" class="tab-content active bg-white p-4 rounded-lg shadow mb-6">
             <h2 class="text-lg font-semibold mb-2">Nivel</h2>
             <canvas id="levelCanvas" class="border border-gray-300"></canvas>
-            <p class="text-center mt-2 text-sm">Alinea el dispositivo hasta que la burbuja esté centrada</p>
+            <p class="text-center mt-2 text-sm">Alinea el dispositivo hasta que la burbuja esté centrada en la cruceta</p>
         </section>
 
         <!-- Análisis del Coeficiente de Rozamiento -->
-        <section class="bg-white p-4 rounded-lg shadow mb-6">
+        <section id="coeficiente" class="tab-content bg-white p-4 rounded-lg shadow mb-6">
             <h2 class="text-lg font-semibold mb-2">Análisis del Coeficiente de Rozamiento (μ)</h2>
             <div class="mb-4">
                 <label class="block text-sm">Número de diligencias:</label>
@@ -114,7 +125,7 @@
         </section>
 
         <!-- Ensayo de Tiempo de Reacción -->
-        <section class="bg-white p-4 rounded-lg shadow mb-6">
+        <section id="reaccion" class="tab-content bg-white p-4 rounded-lg shadow mb-6">
             <h2 class="text-lg font-semibold mb-2">Ensayo de Tiempo de Reacción</h2>
             <div class="mb-4">
                 <label class="block text-sm">Número de diligencias:</label>
@@ -122,12 +133,9 @@
                 <label class="block text-sm mt-2">Matrícula:</label>
                 <input type="text" id="matriculaReaction" class="w-full p-2 border rounded">
             </div>
-            <div class="grid grid-cols-5 gap-2 mb-4">
+            <div class="grid grid-cols-2 gap-2 mb-4">
                 <div id="light1" class="h-8 bg-red-500 rounded"></div>
                 <div id="light2" class="h-8 bg-red-500 rounded"></div>
-                <div id="light3" class="h-8 bg-red-500 rounded"></div>
-                <div id="light4" class="h-8 bg-red-500 rounded"></div>
-                <div id="light5" class="h-8 bg-red-500 rounded"></div>
             </div>
             <button id="startReactionTest" class="bg-blue-500 text-white px-4 py-2 rounded">Iniciar Ensayo</button>
             <button id="exportReactionPDF" class="bg-purple-500 text-white px-4 py-2 rounded mt-2">Exportar Informe PDF</button>
@@ -142,8 +150,8 @@
             <p class="text-sm">Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
             <p class="text-sm mt-2">Instrucciones:</p>
             <ul class="text-sm list-disc pl-5">
-                <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada (recomendado, pero no obligatorio).</li>
-                <li>En "Análisis μ", inicie la grabación para capturar datos de frenado. Deslice la gráfica para ver más datos o use dos dedos para ajustar el rango.</li>
+                <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada en la cruceta (recomendado, pero no obligatorio).</li>
+                <li>En "Coeficiente de Rozamiento", inicie la grabación para capturar datos de frenado. Deslice la gráfica para ver más datos o use dos dedos para ajustar el rango.</li>
                 <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
                 <li>Exporte los datos en CSV, PDF o Excel para su uso en informes judiciales.</li>
             </ul>
@@ -152,6 +160,14 @@
     </div>
 
     <script>
+        // Gestión de pestañas
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-button').forEach(button => button.classList.remove('active'));
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+        }
+
         // Leveling System
         const levelCanvas = document.getElementById('levelCanvas');
         const levelCtx = levelCanvas.getContext('2d');
@@ -162,10 +178,26 @@
             levelCanvas.width = levelCanvas.clientWidth;
             levelCanvas.height = 200;
             levelCtx.clearRect(0, 0, levelCanvas.width, levelCanvas.height);
+
+            // Dibujar marco
             levelCtx.beginPath();
             levelCtx.rect(20, 20, levelCanvas.width - 40, levelCanvas.height - 40);
             levelCtx.strokeStyle = '#000';
             levelCtx.stroke();
+
+            // Dibujar círculo central con cruceta
+            levelCtx.beginPath();
+            levelCtx.arc(levelCanvas.width / 2, levelCanvas.height / 2, 15, 0, Math.PI * 2);
+            levelCtx.strokeStyle = '#000';
+            levelCtx.stroke();
+            levelCtx.beginPath();
+            levelCtx.moveTo(levelCanvas.width / 2, levelCanvas.height / 2 - 20);
+            levelCtx.lineTo(levelCanvas.width / 2, levelCanvas.height / 2 + 20);
+            levelCtx.moveTo(levelCanvas.width / 2 - 20, levelCanvas.height / 2);
+            levelCtx.lineTo(levelCanvas.width / 2 + 20, levelCanvas.height / 2);
+            levelCtx.stroke();
+
+            // Dibujar burbuja
             levelCtx.beginPath();
             levelCtx.arc(bubbleX, bubbleY, 10, 0, Math.PI * 2);
             levelCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
@@ -192,9 +224,9 @@
             data: {
                 labels: [],
                 datasets: [
-                    { label: 'Eje X', data: [], borderColor: 'red', borderWidth: 1, fill: false },
-                    { label: 'Eje Y', data: [], borderColor: 'green', borderWidth: 1, fill: false },
-                    { label: 'Eje Z', data: [], borderColor: 'blue', borderWidth: 1, fill: false }
+                    { label: 'Eje X', data: [], borderColor: 'red', borderWidth: 1, fill: false, pointRadius: 0 },
+                    { label: 'Eje Y', data: [], borderColor: 'green', borderWidth: 1, fill: false, pointRadius: 0 },
+                    { label: 'Eje Z', data: [], borderColor: 'blue', borderWidth: 1, fill: false, pointRadius: 0 }
                 ]
             },
             options: {
@@ -204,6 +236,7 @@
                     y: { title: { display: true, text: 'Aceleración (m/s²)' } }
                 },
                 plugins: {
+                    legend: { display: true, position: 'top' },
                     zoom: {
                         pan: { enabled: true, mode: 'x' },
                         zoom: {
@@ -315,7 +348,6 @@
         });
 
         document.getElementById('exportGPSCSV').addEventListener('click', () => {
-            // Placeholder for GPS data export
             const data = [{ id: '1', lat: 'N/A', lon: 'N/A', speed: '0', accuracy: 'N/A' }];
             exportToCSV(data, 'gps_data.csv');
         });
@@ -325,20 +357,36 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.setFont('Helvetica', 'normal');
-                doc.text('Informe de Análisis de Frenos', 20, 10);
-                try {
-                    doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
-                } catch (imgError) {
-                    console.warn('No se pudo cargar la imagen para el PDF:', imgError);
-                    doc.text('No se pudo cargar el logo', 20, 30);
-                }
-                doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 40);
-                doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 50);
-                doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 60);
-                doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 70);
-                doc.save('informe_frenos.pdf');
-                document.getElementById('dataHash').textContent = 'hash-placeholder'; // Placeholder for hash
-                console.log('PDF generado correctamente');
+                doc.text('Informe de Análisis de Frenos', 20, 20);
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
+                img.onload = () => {
+                    try {
+                        doc.addImage(img, 'PNG', 20, 30, 30, 10);
+                    } catch (imgError) {
+                        console.warn('No se pudo añadir la imagen al PDF:', imgError);
+                        doc.text('No se pudo cargar el logo', 20, 40);
+                    }
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 50);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 60);
+                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 70);
+                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 80);
+                    doc.save('informe_frenos.pdf');
+                    document.getElementById('dataHash').textContent = 'hash-placeholder';
+                    console.log('PDF generado correctamente');
+                };
+                img.onerror = () => {
+                    console.warn('No se pudo cargar la imagen para el PDF');
+                    doc.text('No se pudo cargar el logo', 20, 40);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value || 'N/A'}`, 20, 50);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaMu').value || 'N/A'}`, 20, 60);
+                    doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 70);
+                    doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 80);
+                    doc.save('informe_frenos.pdf');
+                    document.getElementById('dataHash').textContent = 'hash-placeholder';
+                    console.log('PDF generado sin imagen');
+                };
             } catch (error) {
                 console.error('Error al generar PDF:', error);
                 alert('Error al generar el PDF. Revisa la consola para más detalles.');
@@ -377,7 +425,7 @@
         // Reaction Time Test
         document.getElementById('startReactionTest').addEventListener('click', () => {
             try {
-                const lights = [document.getElementById('light1'), document.getElementById('light2'), document.getElementById('light3'), document.getElementById('light4'), document.getElementById('light5')];
+                const lights = [document.getElementById('light1'), document.getElementById('light2')];
                 lights.forEach(light => light.classList.add('bg-red-500'));
                 const delay = Math.random() * 3000 + 1000;
                 setTimeout(() => {
@@ -402,18 +450,32 @@
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 doc.setFont('Helvetica', 'normal');
-                doc.text('Informe de Tiempo de Reacción', 20, 10);
-                try {
-                    doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
-                } catch (imgError) {
-                    console.warn('No se pudo cargar la imagen para el PDF:', imgError);
-                    doc.text('No se pudo cargar el logo', 20, 30);
-                }
-                doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 40);
-                doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 50);
-                doc.save('informe_reaccion.pdf');
-                document.getElementById('reactionHash').textContent = 'hash-placeholder';
-                console.log('PDF de reacción generado correctamente');
+                doc.text('Informe de Tiempo de Reacción', 20, 20);
+                const img = new Image();
+                img.crossOrigin = 'Anonymous';
+                img.src = 'https://aivan84.github.io/analisis-frenos/icon.png?cache=' + new Date().getTime();
+                img.onload = () => {
+                    try {
+                        doc.addImage(img, 'PNG', 20, 30, 30, 10);
+                    } catch (imgError) {
+                        console.warn('No se pudo añadir la imagen al PDF:', imgError);
+                        doc.text('No se pudo cargar el logo', 20, 40);
+                    }
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 50);
+                    doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value || 'N/A'}`, 20, 60);
+                    doc.save('informe_reaccion.pdf');
+                    document.getElementById('reactionHash').textContent = 'hash-placeholder';
+                    console.log('PDF de reacción generado correctamente');
+                };
+                img.onerror = () => {
+                    console.warn('No se pudo cargar la imagen para el PDF');
+                    doc.text('No se pudo cargar el logo', 20, 40);
+                    doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 50);
+                    doc.text(`Matrícula: ${document.getElementById('diligenciasReaction').value || 'N/A'}`, 20, 60);
+                    doc.save('informe_reaccion.pdf');
+                    document.getElementById('reactionHash').textContent = 'hash-placeholder';
+                    console.log('PDF de reacción generado sin imagen');
+                };
             } catch (error) {
                 console.error('Error al generar PDF de reacción:', error);
                 alert('Error al generar el PDF de reacción. Revisa la consola.');
