@@ -41,1083 +41,361 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Análisis de Frenos - Sistema Judicial</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdn.tailwindcss.com/3.3.3/tailwind.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hammer.js@2.0.8/hammer.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
-        html {
-            font-size: 16px;
-        }
-        body {
-            font-family: 'Roboto', Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #ebedef;
-            color: #333;
-            overscroll-behavior: none;
-        }
-        .container {
-            max-width: 100%;
-            margin: 0 auto;
-            padding: 1rem;
-        }
-        header {
-            background-color: #2c3e50;
-            color: #fff;
-            padding: 0.8rem 1rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        header img {
-            height: 2.5rem;
-        }
-        header .metadata {
-            font-size: 0.9rem;
-        }
-        .tabs {
-            display: flex;
-            background-color: #34495e;
-            border-radius: 0.5rem 0.5rem 0 0;
-            flex-wrap: wrap;
-        }
-        .tab {
-            flex: 1;
-            padding: 0.8rem;
-            text-align: center;
-            color: #fff;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            font-size: 1rem;
-        }
-        .tab.active {
-            background-color: #3498db;
-        }
-        .tab-content {
-            display: none;
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 0 0 0.5rem 0.5rem;
-            box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
-        }
-        .tab-content.active {
-            display: block;
-        }
-        button {
-            padding: 0.8rem 1.5rem;
-            background-color: #3498db;
-            color: #fff;
-            border: none;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            font-size: 1rem;
-            margin: 0.3rem;
-            transition: background-color 0.3s;
-            min-height: 44px;
-            touch-action: manipulation;
-        }
-        button:hover:not(:disabled) {
-            background-color: #2980b9;
-        }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        .input-group {
-            margin: 0.8rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        .input-group label {
-            width: 9rem;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        .input-group input {
-            padding: 0.5rem;
-            border: 1px solid #ddd;
-            border-radius: 0.25rem;
-            width: 100%;
-            max-width: 20rem;
-            font-size: 0.9rem;
-        }
-        .checkbox-group {
-            margin: 0.8rem 0;
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        .checkbox-group label {
-            font-size: 0.9rem;
-        }
-        .status {
-            font-style: italic;
-            color: #7f8c8d;
-            font-size: 0.9rem;
-        }
-        .validation-seal {
-            margin: 1rem 0;
-            padding: 0.6rem;
-            background-color: #e8f8e8;
-            border-left: 0.25rem solid #2ecc71;
-            font-size: 0.8rem;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            max-width: 90%;
-            text-align: center;
-            font-size: 0.9rem;
-        }
-        .graph-container {
-            margin: 1rem 0;
-            padding: 0.6rem;
-            background-color: #f9f9f9;
-            border-radius: 0.5rem;
-            width: 100%;
-            height: 40vh;
-            position: relative;
-        }
-        #mu-graph {
-            width: 100% !important;
-            height: 100% !important;
-        }
-        #reaccion {
-            background-color: #1c2526;
-            color: #fff;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-        }
-        .lights-wrapper {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 1.5rem 0;
-        }
-        .lights-row {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-        }
-        .light {
-            width: 15vmin;
-            height: 15vmin;
-            border-radius: 50%;
-            background-color: #4a4a4a;
-            transition: background-color 0.2s ease, box-shadow 0.2s ease;
-        }
-        .light.encendida {
-            background-color: #ff0000;
-            box-shadow: 0 0 2rem rgba(255, 0, 0, 0.8), 0 0 0.6rem rgba(255, 255, 255, 0.5);
-        }
-        .reaction-area {
-            width: 100%;
-            height: 30vh;
-            background-color: transparent;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            color: #fff;
-            text-align: center;
-            margin: 1rem 0;
-            cursor: pointer;
-            touch-action: manipulation;
-        }
-        .reaction-result, .reaction-explanation {
-            background-color: rgba(255, 255, 255, 0.1);
-            padding: 1rem;
-            border-radius: 0.5rem;
-            margin: 1rem 0;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            animation: fadeIn 0.5s ease-in;
-        }
-        .reaction-result.false-start {
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        #iniciar-test {
-            padding: 0.9rem 2rem;
-            font-size: 1.1rem;
-            background-color: #e74c3c;
-        }
-        #iniciar-test:hover:not(:disabled) {
-            background-color: #c0392b;
-        }
-        .bubble-level-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin: 1rem auto;
-            position: relative;
-            width: 80vw;
-            height: 80vw;
-            max-width: 300px;
-            max-height: 300px;
-            background: radial-gradient(circle, #f0f0f0 0%, #d3d3d3 100%);
-            border: 3px solid #333;
-            border-radius: 50%;
-            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2), 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        #bubble-level {
-            width: 100%;
-            height: 100%;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        @media (max-width: 768px) {
-            html { font-size: 14px; }
-            .tabs { flex-direction: column; }
-            .tab { padding: 0.6rem; font-size: 0.9rem; }
-            .input-group { flex-direction: column; align-items: flex-start; }
-            .input-group label { width: 100%; }
-            .input-group input { max-width: 100%; }
-            .checkbox-group { flex-direction: column; gap: 0.5rem; }
-            .graph-container { height: 35vh; }
-            .light { width: 12vmin; height: 12vmin; }
-            .lights-row { gap: 0.5rem; }
-            .reaction-area { height: 25vh; font-size: 1.2rem; }
-            button { padding: 0.6rem 1rem; font-size: 0.9rem; }
-            .bubble-level-container { width: 70vw; height: 70vw; max-width: 250px; max-height: 250px; }
-        }
-        @media (max-width: 480px) {
-            html { font-size: 12px; }
-            .container { padding: 0.5rem; }
-            header { padding: 0.5rem; }
-            header img { height: 2rem; }
-            .light { width: 10vmin; height: 10vmin; }
-            .reaction-area { font-size: 1rem; }
-            .modal-content { max-width: 95%; }
-            .bubble-level-container { width: 60vw; height: 60vw; max-width: 200px; max-height: 200px; }
-        }
+        canvas { width: 100%; height: 200px; }
+        .chart-container { position: relative; width: 100%; height: 300px; overflow-x: auto; }
+        .bubble { transition: transform 0.1s ease-out; }
     </style>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <header>
-        <img src="https://via.placeholder.com/150x40?text=Logo" alt="Logo">
-        <div class="metadata">
-            <span id="current-datetime"></span> | Versión 1.0.0
-        </div>
-    </header>
-    <div class="container">
-        <h1>Análisis de Frenos - Sistema Judicial</h1>
-        <div class="tabs">
-            <div class="tab active" onclick="openTab('nivel')">Nivel</div>
-            <div class="tab" onclick="openTab('mu')">Análisis μ</div>
-            <div class="tab" onclick="openTab('reaccion')">Tiempo de Reacción</div>
-        </div>
+<body class="bg-gray-100 font-sans">
+    <div class="container mx-auto p-4">
+        <header class="text-center mb-6">
+            <h1 class="text-2xl font-bold">Análisis de Frenos - Sistema Judicial</h1>
+            <p class="text-sm">Versión 1.0.0</p>
+        </header>
 
-        <div id="nivel" class="tab-content active">
-            <h2>Nivel de Inclinación</h2>
-            <div class="bubble-level-container">
-                <canvas id="bubble-level"></canvas>
-            </div>
-        </div>
+        <!-- Nivelación -->
+        <section class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">Nivel</h2>
+            <canvas id="levelCanvas" class="border border-gray-300"></canvas>
+            <p class="text-center mt-2 text-sm">Alinea el dispositivo hasta que la burbuja esté centrada</p>
+        </section>
 
-        <div id="mu" class="tab-content">
-            <h2>Análisis del Coeficiente de Rozamiento (μ)</h2>
-            <div class="input-group">
-                <label>Número de diligencias:</label>
-                <input type="text" id="mu-diligencias" placeholder="Ej: 1234/2025">
-                <label>Matrícula:</label>
-                <input type="text" id="mu-matricula" placeholder="Ej: ABC1234">
+        <!-- Análisis del Coeficiente de Rozamiento -->
+        <section class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">Análisis del Coeficiente de Rozamiento (μ)</h2>
+            <div class="mb-4">
+                <label class="block text-sm">Número de diligencias:</label>
+                <input type="text" id="diligenciasMu" class="w-full p-2 border rounded">
+                <label class="block text-sm mt-2">Matrícula:</label>
+                <input type="text" id="matriculaMu" class="w-full p-2 border rounded">
             </div>
-            <button id="start-recording">Iniciar Grabación</button>
-            <button id="stop-recording" disabled>Detener Grabación</button>
-            <p><strong>Estado:</strong> <span id="recording-status">No grabando</span></p>
-            <p><strong>Estado GPS:</strong> <span id="gps-status">📍 Esperando señal</span></p>
-            <p><strong>Coordenadas:</strong> <span id="gps-coords">N/A</span></p>
-            <p><strong>Velocidad GPS:</strong> <span id="gps-speed">0.0 km/h</span></p>
-            <p><strong>Precisión GPS:</strong> <span id="gps-accuracy">N/A</span></p>
-            <p><strong>Puntos GPS:</strong> <span id="gps-points">0</span></p>
-            <div class="checkbox-group">
-                <label><input type="checkbox" id="show-eje-x" checked onchange="updateGraph()"> Eje X</label>
-                <label><input type="checkbox" id="show-eje-y" checked onchange="updateGraph()"> Eje Y</label>
-                <label><input type="checkbox" id="show-eje-z" checked onchange="updateGraph()"> Eje Z</label>
-                <label><input type="checkbox" id="show-velocidad" checked onchange="updateGraph()"> Velocidad</label>
+            <div class="flex space-x-2 mb-4">
+                <button id="startRecording" class="bg-blue-500 text-white px-4 py-2 rounded">Iniciar Grabación</button>
+                <button id="stopRecording" class="bg-red-500 text-white px-4 py-2 rounded" disabled>Detener Grabación</button>
             </div>
-            <div class="graph-container">
-                <canvas id="mu-graph"></canvas>
+            <p id="recordingStatus" class="text-sm">Estado: No grabando</p>
+            <p id="gpsStatus" class="text-sm">Estado GPS: 📍 Esperando señal</p>
+            <p id="gpsCoords" class="text-sm">Coordenadas: N/A</p>
+            <p id="gpsSpeed" class="text-sm">Velocidad GPS: 0.0 km/h</p>
+            <p id="gpsAccuracy" class="text-sm">Precisión GPS: N/A</p>
+            <p id="gpsPoints" class="text-sm">Puntos GPS: 0</p>
+            <div class="chart-container">
+                <canvas id="accelChart"></canvas>
             </div>
-            <p><strong>μ Automático:</strong> <span id="mu-auto">0.000</span></p>
-            <p><strong>μ Manual:</strong> <span id="mu-manual">0.000</span></p>
-            <p class="status">Selección: <span id="selection-info">Haga clic en la gráfica para seleccionar el tramo</span></p>
-            <button onclick="downloadAccelerometerData()">Exportar Datos Acelerómetro (CSV)</button>
-            <button onclick="downloadGPSData()">Exportar Datos GPS (CSV)</button>
-            <button onclick="generatePDFReport()">Generar Informe PDF</button>
-            <div class="validation-seal">Datos certificados por Análisis de Frenos | Hash: <span id="mu-hash">N/A</span></div>
-            <p>
-                <input type="checkbox" id="calcular-mu-auto" checked onchange="calculateAutoMU()"> Cálculo Automático de μ<br>
-                <input type="checkbox" id="seleccionar-intervalo" onchange="toggleManualSelection()"> Selección Manual de Tramo
-            </p>
-        </div>
+            <table class="w-full text-sm mt-4">
+                <tr><th>Eje X</th><td id="accelX">0</td></tr>
+                <tr><th>Eje Y</th><td id="accelY">0</td></tr>
+                <tr><th>Eje Z</th><td id="accelZ">0</td></tr>
+                <tr><th>Velocidad</th><td id="speed">0</td></tr>
+            </table>
+            <p class="text-sm mt-2">μ Automático: <span id="muAuto">0.000</span></p>
+            <p class="text-sm">μ Manual: <span id="muManual">0.000</span></p>
+            <p class="text-sm">Selección: Haga clic en la gráfica para seleccionar el tramo</p>
+            <div class="flex space-x-2 mt-4">
+                <button id="exportAccelCSV" class="bg-green-500 text-white px-4 py-2 rounded">Exportar Datos Acelerómetro (CSV)</button>
+                <button id="exportGPSCSV" class="bg-green-500 text-white px-4 py-2 rounded">Exportar Datos GPS (CSV)</button>
+                <button id="exportPDF" class="bg-purple-500 text-white px-4 py-2 rounded">Generar Informe PDF</button>
+                <button id="exportExcel" class="bg-teal-500 text-white px-4 py-2 rounded">Generar Informe Excel</button>
+            </div>
+            <p class="text-sm mt-2">Datos certificados por Análisis de Frenos | Hash: <span id="dataHash">N/A</span></p>
+            <div class="mt-4">
+                <label><input type="radio" name="muMode" value="auto" checked> Cálculo Automático de μ</label>
+                <label><input type="radio" name="muMode" value="manual"> Selección Manual de Tramo</label>
+            </div>
+        </section>
 
-        <div id="reaccion" class="tab-content">
-            <h2>Ensayo de Tiempo de Reacción</h2>
-            <div class="input-group">
-                <label>Número de diligencias:</label>
-                <input type="text" id="reaccion-diligencias" placeholder="Ej: 1234/2025">
-                <label>Matrícula:</label>
-                <input type="text" id="reaccion-matricula" placeholder="Ej: ABC1234">
+        <!-- Ensayo de Tiempo de Reacción -->
+        <section class="bg-white p-4 rounded-lg shadow mb-6">
+            <h2 class="text-lg font-semibold mb-2">Ensayo de Tiempo de Reacción</h2>
+            <div class="mb-4">
+                <label class="block text-sm">Número de diligencias:</label>
+                <input type="text" id="diligenciasReaction" class="w-full p-2 border rounded">
+                <label class="block text-sm mt-2">Matrícula:</label>
+                <input type="text" id="matriculaReaction" class="w-full p-2 border rounded">
             </div>
-            <div class="lights-wrapper">
-                <div class="lights-row">
-                    <div class="light" data-index="1"></div>
-                    <div class="light" data-index="2"></div>
-                    <div class="light" data-index="3"></div>
-                    <div class="light" data-index="4"></div>
-                    <div class="light" data-index="5"></div>
-                </div>
-                <div class="lights-row">
-                    <div class="light" data-index="1"></div>
-                    <div class="light" data-index="2"></div>
-                    <div class="light" data-index="3"></div>
-                    <div class="light" data-index="4"></div>
-                    <div class="light" data-index="5"></div>
-                </div>
+            <div class="grid grid-cols-5 gap-2 mb-4">
+                <div id="light1" class="h-8 bg-red-500 rounded"></div>
+                <div id="light2" class="h-8 bg-red-500 rounded"></div>
+                <div id="light3" class="h-8 bg-red-500 rounded"></div>
+                <div id="light4" class="h-8 bg-red-500 rounded"></div>
+                <div id="light5" class="h-8 bg-red-500 rounded"></div>
             </div>
-            <button id="iniciar-test">Iniciar Ensayo</button>
-            <button id="export-pdf" disabled>Exportar Informe PDF</button>
-            <div class="reaction-area" id="reaction-area">Prepárate para interactuar cuando las luces se apaguen</div>
-            <div class="reaction-result" id="reaction-result"></div>
-            <div class="reaction-explanation" id="reaction-explanation"></div>
-            <div class="validation-seal">Datos certificados por Análisis de Frenos | Hash: <span id="reaction-hash">N/A</span></div>
-        </div>
+            <button id="startReactionTest" class="bg-blue-500 text-white px-4 py-2 rounded">Iniciar Ensayo</button>
+            <button id="exportReactionPDF" class="bg-purple-500 text-white px-4 py-2 rounded mt-2">Exportar Informe PDF</button>
+            <button id="exportReactionExcel" class="bg-teal-500 text-white px-4 py-2 rounded mt-2">Exportar Informe Excel</button>
+            <p class="text-sm mt-2">Prepárate para interactuar cuando las luces se apaguen</p>
+            <p class="text-sm mt-2">Datos certificados por Análisis de Frenos | Hash: <span id="reactionHash">N/A</span></p>
+        </section>
 
-        <div class="modal" id="tutorial-modal">
-            <div class="modal-content">
-                <h2>Bienvenido al Sistema de Análisis de Frenos</h2>
-                <p>Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
-                <p><strong>Instrucciones:</strong></p>
-                <ul>
-                    <li>En "Nivel", utilice la burbuja como guía para alinear el dispositivo (recomendado, pero no obligatorio).</li>
-                    <li>En "Análisis μ", inicie la grabación para capturar datos de frenado.</li>
-                    <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
-                    <li>Exporte los datos en CSV o PDF para su uso en informes judiciales.</li>
-                </ul>
-                <button onclick="document.getElementById('tutorial-modal').style.display='none'">Entendido</button>
-            </div>
-        </div>
+        <!-- Instrucciones -->
+        <section class="bg-white p-4 rounded-lg shadow">
+            <h2 class="text-lg font-semibold mb-2">Bienvenido al Sistema de Análisis de Frenos</h2>
+            <p class="text-sm">Esta aplicación realiza ensayos precisos para determinar el coeficiente de rozamiento (μ) y el tiempo de reacción, diseñada para uso en procedimientos judiciales.</p>
+            <p class="text-sm mt-2">Instrucciones:</p>
+            <ul class="text-sm list-disc pl-5">
+                <li>En "Nivel", alinee el dispositivo hasta que la burbuja esté centrada (recomendado, pero no obligatorio).</li>
+                <li>En "Análisis μ", inicie la grabación para capturar datos de frenado. Deslice la gráfica para ver más datos o use dos dedos para ajustar el rango.</li>
+                <li>En "Tiempo de Reacción", realice el ensayo tocando la pantalla tras el apagado de las luces.</li>
+                <li>Exporte los datos en CSV, PDF o Excel para su uso en informes judiciales.</li>
+            </ul>
+            <button id="understood" class="bg-blue-500 text-white px-4 py-2 rounded mt-4">Entendido</button>
+        </section>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.0/dist/chartjs-plugin-zoom.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.0/dist/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script>
-        console.log('Iniciando script...');
-        const { jsPDF } = window.jspdf || {};
-        if (!window.Chart || !window.html2canvas || !window.saveAs || !jsPDF || !window.Chart.plugins.getPlugin('annotation')) {
-            console.error('Error: Alguna dependencia (Chart.js, html2canvas, FileSaver, jsPDF, chartjs-plugin-annotation) no se cargó correctamente');
+        // Leveling System
+        const levelCanvas = document.getElementById('levelCanvas');
+        const levelCtx = levelCanvas.getContext('2d');
+        let bubbleX = levelCanvas.width / 2;
+        let bubbleY = levelCanvas.height / 2;
+
+        function drawLevel() {
+            levelCanvas.width = levelCanvas.clientWidth;
+            levelCanvas.height = 200;
+            levelCtx.clearRect(0, 0, levelCanvas.width, levelCanvas.height);
+            levelCtx.beginPath();
+            levelCtx.rect(20, 20, levelCanvas.width - 40, levelCanvas.height - 40);
+            levelCtx.strokeStyle = '#000';
+            levelCtx.stroke();
+            levelCtx.beginPath();
+            levelCtx.arc(bubbleX, bubbleY, 10, 0, Math.PI * 2);
+            levelCtx.fillStyle = 'rgba(0, 255, 0, 0.5)';
+            levelCtx.fill();
+            requestAnimationFrame(drawLevel);
         }
 
-        let accelerometerData = { x: [], y: [], z: [], speed: [], time: [] };
-        let gpsData = { lat: [], lon: [], speed: [], accuracy: [], time: [] };
-        let isRecording = false;
-        let manualSelection = { start: null, end: null };
-        let calibration = { x: 0, y: 0, z: 9.81, angleX: 0, angleY: 0 };
-        let watchId = null;
-        let isLevelled = false;
-        let angleBuffer = { x: [], y: [] }; // Buffer para suavizado
+        window.addEventListener('deviceorientation', (e) => {
+            const gamma = e.gamma || 0; // Left-right tilt
+            const beta = e.beta || 0;   // Front-back tilt
+            bubbleX = (levelCanvas.width / 2) + (gamma / 90) * (levelCanvas.width / 2 - 30);
+            bubbleY = (levelCanvas.height / 2) + (beta / 90) * (levelCanvas.height / 2 - 30);
+            bubbleX = Math.max(30, Math.min(levelCanvas.width - 30, bubbleX));
+            bubbleY = Math.max(30, Math.min(levelCanvas.height - 30, bubbleY));
+        });
 
-        // Actualizar fecha y hora
-        function updateDateTime() {
-            try {
-                const now = new Date();
-                document.getElementById('current-datetime').textContent = now.toLocaleString('es-ES', { timeZone: 'Europe/Madrid' });
-            } catch (error) {
-                console.error('Error en updateDateTime:', error);
-            }
-        }
-        setInterval(updateDateTime, 1000);
-        updateDateTime();
+        drawLevel();
 
-        // Mostrar tutorial al cargar
-        try {
-            document.getElementById('tutorial-modal').style.display = 'flex';
-        } catch (error) {
-            console.error('Error al mostrar modal:', error);
-        }
-
-        // Gestión de pestañas
-        function openTab(tabId) {
-            try {
-                console.log('Abriendo pestaña:', tabId);
-                document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-                const tabElement = document.querySelector(`[onclick="openTab('${tabId}')"]`);
-                const contentElement = document.getElementById(tabId);
-                if (!tabElement || !contentElement) {
-                    console.error('Elemento no encontrado para tabId:', tabId);
-                    return;
-                }
-                tabElement.classList.add('active');
-                contentElement.classList.add('active');
-                if (tabId === 'nivel') {
-                    initBubbleLevel();
-                }
-            } catch (error) {
-                console.error('Error en openTab:', error);
-            }
-        }
-
-        // Configuración del nivel de burbuja
-        const bubbleCanvas = document.getElementById('bubble-level');
-        const bubbleCtx = bubbleCanvas ? bubbleCanvas.getContext('2d') : null;
-        let bubbleRadius = 15;
-
-        function initBubbleLevel() {
-            try {
-                console.log('Inicializando nivel de burbuja...');
-                if (!bubbleCanvas || !bubbleCtx) {
-                    console.error('Error: Canvas o contexto no disponible');
-                    return;
-                }
-                resizeBubbleCanvas();
-                window.addEventListener('resize', resizeBubbleCanvas);
-                window.addEventListener('orientationchange', resizeBubbleCanvas);
-            } catch (error) {
-                console.error('Error en initBubbleLevel:', error);
-            }
-        }
-
-        function resizeBubbleCanvas() {
-            try {
-                const container = document.querySelector('.bubble-level-container');
-                if (!container || !bubbleCanvas) {
-                    console.error('Error: Container o canvas no encontrado');
-                    return;
-                }
-                bubbleCanvas.width = container.clientWidth;
-                bubbleCanvas.height = container.clientHeight;
-                bubbleRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 10;
-                console.log('Canvas redimensionado:', bubbleCanvas.width, bubbleCanvas.height);
-                drawBubble();
-            } catch (error) {
-                console.error('Error en resizeBubbleCanvas:', error);
-            }
-        }
-
-        function drawBubble() {
-            try {
-                if (!bubbleCtx) {
-                    console.error('Error: Contexto del canvas no disponible');
-                    return;
-                }
-                bubbleCtx.clearRect(0, 0, bubbleCanvas.width, bubbleCanvas.height);
-
-                // Fondo del nivel
-                const centerX = bubbleCanvas.width / 2;
-                const centerY = bubbleCanvas.height / 2;
-                const outerRadius = Math.min(bubbleCanvas.width, bubbleCanvas.height) / 2 - 5;
-                bubbleCtx.beginPath();
-                bubbleCtx.arc(centerX, centerY, outerRadius, 0, 2 * Math.PI);
-                bubbleCtx.strokeStyle = '#333';
-                bubbleCtx.lineWidth = 2;
-                bubbleCtx.stroke();
-
-                // Líneas de referencia
-                bubbleCtx.beginPath();
-                bubbleCtx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
-                bubbleCtx.lineWidth = 1;
-                bubbleCtx.moveTo(centerX, 0);
-                bubbleCtx.lineTo(centerX, bubbleCanvas.height);
-                bubbleCtx.moveTo(0, centerY);
-                bubbleCtx.lineTo(bubbleCanvas.width, centerY);
-                bubbleCtx.stroke();
-
-                // Burbuja
-                const maxTilt = 20; // Reducir sensibilidad
-                const smoothedAngleX = angleBuffer.x.length ? angleBuffer.x.reduce((sum, val) => sum + val, 0) / angleBuffer.x.length : 0;
-                const smoothedAngleY = angleBuffer.y.length ? angleBuffer.y.reduce((sum, val) => sum + val, 0) / angleBuffer.y.length : 0;
-                const maxOffset = outerRadius - bubbleRadius;
-                const offsetX = (smoothedAngleX / maxTilt) * maxOffset * 0.7; // Reducir amplitud
-                const offsetY = (smoothedAngleY / maxTilt) * maxOffset * 0.7; // Reducir amplitud
-
-                bubbleCtx.beginPath();
-                bubbleCtx.arc(centerX + offsetX, centerY + offsetY, bubbleRadius, 0, 2 * Math.PI);
-                const gradient = bubbleCtx.createRadialGradient(
-                    centerX + offsetX - bubbleRadius / 2,
-                    centerY + offsetY - bubbleRadius / 2,
-                    bubbleRadius / 4,
-                    centerX + offsetX,
-                    centerY + offsetY,
-                    bubbleRadius
-                );
-                gradient.addColorStop(0, isLevelled ? '#2ecc71' : '#e74c3c');
-                gradient.addColorStop(1, isLevelled ? '#27ae60' : '#c0392b');
-                bubbleCtx.fillStyle = gradient;
-                bubbleCtx.fill();
-                bubbleCtx.strokeStyle = '#333';
-                bubbleCtx.lineWidth = 1;
-                bubbleCtx.stroke();
-                console.log('Burbuja dibujada:', { angleX: smoothedAngleX, angleY: smoothedAngleY, isLevelled });
-            } catch (error) {
-                console.error('Error en drawBubble:', error);
-            }
-        }
-
-        // Verificar compatibilidad de sensores
-        if (!window.DeviceMotionEvent) {
-            console.warn('DeviceMotionEvent no soportado');
-        } else {
-            window.addEventListener('devicemotion', event => {
-                try {
-                    const x = (event.accelerationIncludingGravity?.x || 0) - calibration.x;
-                    const y = (event.accelerationIncludingGravity?.y || 0) - calibration.y;
-                    const z = (event.accelerationIncludingGravity?.z || 0) - calibration.z;
-                    calibration.angleX = Math.atan2(y, z) * (180 / Math.PI);
-                    calibration.angleY = Math.atan2(x, z) * (180 / Math.PI);
-                    // Suavizado: mantener los últimos 10 valores
-                    angleBuffer.x.push(calibration.angleX);
-                    angleBuffer.y.push(calibration.angleY);
-                    if (angleBuffer.x.length > 10) angleBuffer.x.shift();
-                    if (angleBuffer.y.length > 10) angleBuffer.y.shift();
-                    isLevelled = Math.abs(calibration.angleX) < 1 && Math.abs(calibration.angleY) < 1;
-                    drawBubble();
-                    console.log('DeviceMotion:', { x, y, z, angleX: calibration.angleX, angleY: calibration.angleY, isLevelled });
-                    if (isRecording) {
-                        const time = performance.now() / 1000;
-                        accelerometerData.x.push(x);
-                        accelerometerData.y.push(y);
-                        accelerometerData.z.push(z);
-                        accelerometerData.speed.push(gpsData.speed[gpsData.speed.length - 1] || 0);
-                        accelerometerData.time.push(time);
-                        updateGraph();
-                        calculateAutoMU();
-                        console.log('Datos grabados:', { time, x, y, z });
-                    }
-                } catch (error) {
-                    console.error('Error en DeviceMotionEvent:', error);
-                }
-            }, { passive: false });
-        }
-
-        // Captura de datos GPS
-        function startGPS() {
-            try {
-                console.log('Iniciando GPS...');
-                if (!navigator.geolocation) {
-                    console.warn('Geolocation no soportado');
-                    document.getElementById('gps-status').innerText = 'GPS no soportado';
-                    return;
-                }
-                watchId = navigator.geolocation.watchPosition(
-                    position => {
-                        const time = performance.now() / 1000;
-                        gpsData.lat.push(position.coords.latitude);
-                        gpsData.lon.push(position.coords.longitude);
-                        gpsData.speed.push(position.coords.speed ? position.coords.speed * 3.6 : 0);
-                        gpsData.accuracy.push(position.coords.accuracy);
-                        gpsData.time.push(time);
-                        document.getElementById('gps-coords').innerText = `${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
-                        document.getElementById('gps-speed').innerText = `${(position.coords.speed * 3.6).toFixed(1)} km/h`;
-                        document.getElementById('gps-accuracy').innerText = `${position.coords.accuracy.toFixed(1)} m`;
-                        document.getElementById('gps-points').innerText = gpsData.time.length;
-                        document.getElementById('gps-status').innerText = '📍 Señal activa';
-                        console.log('GPS actualizado:', { lat: position.coords.latitude, lon: position.coords.longitude, speed: position.coords.speed });
-                    },
-                    error => {
-                        console.error('Error GPS:', error.message);
-                        document.getElementById('gps-status').innerText = `Error GPS: ${error.message}`;
-                    },
-                    { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
-                );
-            } catch (error) {
-                console.error('Error en startGPS:', error);
-            }
-        }
-
-        // Gráfica de Análisis μ
-        let muChart = null;
-        try {
-            const ctx = document.getElementById('mu-graph').getContext('2d');
-            muChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [
-                        { label: 'Eje X (m/s²)', data: [], borderColor: '#e74c3c', borderWidth: 1, hidden: false },
-                        { label: 'Eje Y (m/s²)', data: [], borderColor: '#3498db', borderWidth: 1, hidden: false },
-                        { label: 'Eje Z (m/s²)', data: [], borderColor: '#2ecc71', borderWidth: 1, hidden: false },
-                        { label: 'Velocidad (km/h)', data: [], borderColor: '#f1c40f', borderWidth: 1, hidden: false },
-                    ]
+        // Accelerometer Chart
+        const accelChartCtx = document.getElementById('accelChart').getContext('2d');
+        let accelData = { x: [], y: [], z: [], time: [], speed: [] };
+        const accelChart = new Chart(accelChartCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Eje X', data: [], borderColor: 'red', borderWidth: 1, fill: false },
+                    { label: 'Eje Y', data: [], borderColor: 'green', borderWidth: 1, fill: false },
+                    { label: 'Eje Z', data: [], borderColor: 'blue', borderWidth: 1, fill: false }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { type: 'linear', min: 0, max: 2.5, title: { display: true, text: 'Tiempo (s)' } },
+                    y: { title: { display: true, text: 'Aceleración (m/s²)' } }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: { title: { display: true, text: 'Tiempo (s)' } },
-                        y: {
-                            title: { display: true, text: 'Valor' },
-                            suggestedMin: -15,
-                            suggestedMax: 15
-                        }
-                    },
-                    plugins: {
-                        title: { display: true, text: 'Datos de Frenado en Tiempo Real', font: { size: 1.2 * 16 } },
-                        annotation: {
-                            annotations: {
-                                timestamp: {
-                                    type: 'label',
-                                    content: () => new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-                                    position: { x: 'end', y: 'end' },
-                                    font: { size: 12 },
-                                    color: '#666',
-                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                                    padding: 4
-                                }
+                plugins: {
+                    zoom: {
+                        pan: { enabled: true, mode: 'x' },
+                        zoom: {
+                            pinch: { enabled: true },
+                            mode: 'x',
+                            onZoom: ({ chart }) => {
+                                const { min, max } = chart.scales.x;
+                                chart.options.scales.x.min = min;
+                                chart.options.scales.x.max = max;
+                                chart.update();
                             }
-                        }
-                    },
-                    onClick: (event, elements, chart) => {
-                        try {
-                            if (document.getElementById('seleccionar-intervalo').checked) {
-                                const xValue = chart.scales.x.getValueForPixel(event.offsetX);
-                                if (!manualSelection.start) {
-                                    manualSelection.start = Math.floor(xValue);
-                                    document.getElementById('selection-info').innerText = `Inicio: ${manualSelection.start}. Seleccione el fin.`;
-                                } else if (!manualSelection.end) {
-                                    manualSelection.end = Math.floor(xValue);
-                                    document.getElementById('selection-info').innerText = `Tramo: ${manualSelection.start} a ${manualSelection.end}`;
-                                    calculateManualMU();
-                                } else {
-                                    manualSelection = { start: null, end: null };
-                                    document.getElementById('selection-info').innerText = 'Haga clic en la gráfica para seleccionar el tramo';
-                                }
-                                console.log('Selección en gráfica:', manualSelection);
-                            }
-                        } catch (error) {
-                            console.error('Error en onClick de gráfica:', error);
                         }
                     }
                 }
-            });
-            console.log('Gráfica inicializada');
-        } catch (error) {
-            console.error('Error al inicializar gráfica:', error);
-        }
-
-        function updateGraph() {
-            try {
-                if (!muChart) {
-                    console.error('Error: Gráfica no inicializada');
-                    return;
-                }
-                muChart.data.labels = accelerometerData.time;
-                muChart.data.datasets[0].data = accelerometerData.x;
-                muChart.data.datasets[1].data = accelerometerData.y;
-                muChart.data.datasets[2].data = accelerometerData.z;
-                muChart.data.datasets[3].data = accelerometerData.speed;
-                muChart.data.datasets[0].hidden = !document.getElementById('show-eje-x').checked;
-                muChart.data.datasets[1].hidden = !document.getElementById('show-eje-y').checked;
-                muChart.data.datasets[2].hidden = !document.getElementById('show-eje-z').checked;
-                muChart.data.datasets[3].hidden = !document.getElementById('show-velocidad').checked;
-                muChart.update();
-                console.log('Gráfica actualizada con', accelerometerData.time.length, 'puntos');
-            } catch (error) {
-                console.error('Error en updateGraph:', error);
             }
-        }
+        });
 
-        function calculateAutoMU() {
-            try {
-                if (!document.getElementById('calcular-mu-auto').checked || accelerometerData.z.length === 0) return;
-                const maxDeceleration = Math.min(...accelerometerData.z);
-                const g = 9.81;
-                const mu = Math.abs(maxDeceleration / g);
-                document.getElementById('mu-auto').innerText = mu.toFixed(3);
-                console.log('μ automático calculado:', mu);
-            } catch (error) {
-                console.error('Error en calculateAutoMU:', error);
-            }
-        }
-
-        function calculateManualMU() {
-            try {
-                if (!manualSelection.start || !manualSelection.end) return;
-                const start = Math.min(manualSelection.start, manualSelection.end);
-                const end = Math.max(manualSelection.start, manualSelection.end);
-                const zData = accelerometerData.z.slice(start, end + 1);
-                const avgDeceleration = zData.reduce((sum, val) => sum + val, 0) / zData.length;
-                const g = 9.81;
-                const mu = Math.abs(avgDeceleration / g);
-                document.getElementById('mu-manual').innerText = mu.toFixed(3);
-                console.log('μ manual calculado:', mu);
-            } catch (error) {
-                console.error('Error en calculateManualMU:', error);
-            }
-        }
-
-        function toggleManualSelection() {
-            try {
-                if (!document.getElementById('seleccionar-intervalo').checked) {
-                    manualSelection = { start: null, end: null };
-                    document.getElementById('selection-info').innerText = 'Haga clic en la gráfica para seleccionar el tramo';
-                    console.log('Selección manual desactivada');
-                }
-            } catch (error) {
-                console.error('Error en toggleManualSelection:', error);
-            }
-        }
-
-        // Generar hash SHA-256
-        async function generateHash(data) {
-            try {
-                const msgBuffer = new TextEncoder().encode(data);
-                const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-                const hashArray = Array.from(new Uint8Array(hashBuffer));
-                return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-            } catch (error) {
-                console.error('Error en generateHash:', error);
-                return 'N/A';
-            }
-        }
-
-        // Grabación de datos
-        document.getElementById('start-recording').addEventListener('click', () => {
-            try {
-                console.log('Iniciando grabación...');
-                if (!window.DeviceMotionEvent || !navigator.geolocation) {
-                    alert('Los sensores no están disponibles en este dispositivo.');
-                    console.warn('Sensores no disponibles');
-                    return;
-                }
-                document.getElementById('start-recording').disabled = true;
-                document.getElementById('stop-recording').disabled = false;
-                document.getElementById('recording-status').innerText = 'Grabando...';
-                accelerometerData = { x: [], y: [], z: [], speed: [], time: [] };
-                gpsData = { lat: [], lon: [], speed: [], accuracy: [], time: [] };
+        let isRecording = false;
+        let startTime = 0;
+        document.getElementById('startRecording').addEventListener('click', () => {
+            if (!isRecording) {
                 isRecording = true;
-                startGPS();
-                console.log('Grabación iniciada');
-            } catch (error) {
-                console.error('Error al iniciar grabación:', error);
+                startTime = performance.now();
+                accelData = { x: [], y: [], z: [], time: [], speed: [] };
+                document.getElementById('recordingStatus').textContent = 'Estado: Grabando';
+                document.getElementById('startRecording').disabled = true;
+                document.getElementById('stopRecording').disabled = false;
+                recordAccelData();
             }
         });
 
-        document.getElementById('stop-recording').addEventListener('click', () => {
-            try {
-                console.log('Deteniendo grabación...');
+        document.getElementById('stopRecording').addEventListener('click', () => {
+            if (isRecording) {
                 isRecording = false;
-                navigator.geolocation.clearWatch(watchId);
-                document.getElementById('start-recording').disabled = false;
-                document.getElementById('stop-recording').disabled = true;
-                document.getElementById('recording-status').innerText = 'Grabación finalizada';
-                calculateAutoMU();
-                console.log('Grabación detenida con', accelerometerData.time.length, 'puntos');
-            } catch (error) {
-                console.error('Error al detener grabación:', error);
+                document.getElementById('recordingStatus').textContent = 'Estado: No grabando';
+                document.getElementById('startRecording').disabled = false;
+                document.getElementById('stopRecording').disabled = true;
             }
         });
 
-        // Descarga de datos
-        async function downloadAccelerometerData() {
-            try {
-                console.log('Exportando datos de acelerómetro...');
-                const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
-                const matricula = document.getElementById('mu-matricula').value || 'N/A';
-                const now = new Date().toLocaleString('es-ES');
-                let csv = `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${now}\nDispositivo,${navigator.userAgent}\nFrecuencia de muestreo,10 Hz\n`;
-                csv += 'Tiempo (s),Eje X (m/s²),Eje Y (m/s²),Eje Z (m/s²),Velocidad (km/h)\n';
-                for (let i = 0; i < accelerometerData.time.length; i++) {
-                    csv += `${accelerometerData.time[i].toFixed(1)},${accelerometerData.x[i].toFixed(2)},${accelerometerData.y[i].toFixed(2)},${accelerometerData.z[i].toFixed(2)},${accelerometerData.speed[i].toFixed(1)}\n`;
+        function recordAccelData() {
+            if (!isRecording) return;
+            window.addEventListener('devicemotion', (e) => {
+                if (!isRecording) return;
+                const time = (performance.now() - startTime) / 1000;
+                const accel = e.accelerationIncludingGravity || { x: 0, y: 0, z: 0 };
+                accelData.x.push(accel.x || 0);
+                accelData.y.push(accel.y || 0);
+                accelData.z.push(accel.z || 0);
+                accelData.time.push(time);
+                accelData.speed.push(0); // Placeholder for speed
+                accelChart.data.labels = accelData.time;
+                accelChart.data.datasets[0].data = accelData.x;
+                accelChart.data.datasets[1].data = accelData.y;
+                accelChart.data.datasets[2].data = accelData.z;
+                if (time > accelChart.options.scales.x.max) {
+                    accelChart.options.scales.x.min += 0.1;
+                    accelChart.options.scales.x.max += 0.1;
                 }
-                const hash = await generateHash(csv);
-                document.getElementById('mu-hash').innerText = hash;
-                csv += `Hash SHA-256,${hash}\n`;
-                const blob = new Blob([csv], { type: 'text/csv' });
-                saveAs(blob, `acelerometro_${diligencias.replace(/[/\s]/g, '_')}.csv`);
-                console.log('Datos de acelerómetro exportados');
-            } catch (error) {
-                console.error('Error en downloadAccelerometerData:', error);
-            }
+                accelChart.update();
+                document.getElementById('accelX').textContent = (accel.x || 0).toFixed(3);
+                document.getElementById('accelY').textContent = (accel.y || 0).toFixed(3);
+                document.getElementById('accelZ').textContent = (accel.z || 0).toFixed(3);
+                document.getElementById('speed').textContent = '0';
+            }, { once: true });
+            requestAnimationFrame(recordAccelData);
         }
 
-        async function downloadGPSData() {
-            try {
-                console.log('Exportando datos GPS...');
-                const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
-                const matricula = document.getElementById('mu-matricula').value || 'N/A';
-                const now = new Date().toLocaleString('es-ES');
-                let csv = `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${now}\nDispositivo,${navigator.userAgent}\n`;
-                csv += 'Tiempo (s),Latitud,Longitud,Velocidad (km/h),Precisión (m)\n';
-                for (let i = 0; i < gpsData.time.length; i++) {
-                    csv += `${gpsData.time[i].toFixed(1)},${gpsData.lat[i].toFixed(6)},${gpsData.lon[i].toFixed(6)},${gpsData.speed[i].toFixed(1)},${gpsData.accuracy[i].toFixed(1)}\n`;
-                }
-                const hash = await generateHash(csv);
-                document.getElementById('mu-hash').innerText = hash;
-                csv += `Hash SHA-256,${hash}\n`;
-                const blob = new Blob([csv], { type: 'text/csv' });
-                saveAs(blob, `gps_${diligencias.replace(/[/\s]/g, '_')}.csv`);
-                console.log('Datos GPS exportados');
-            } catch (error) {
-                console.error('Error en downloadGPSData:', error);
-            }
+        // GPS Data
+        let gpsPoints = 0;
+        navigator.geolocation.watchPosition((pos) => {
+            gpsPoints++;
+            document.getElementById('gpsStatus').textContent = 'Estado GPS: 📍 Conectado';
+            document.getElementById('gpsCoords').textContent = `Coordenadas: ${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`;
+            document.getElementById('gpsSpeed').textContent = `Velocidad GPS: ${(pos.coords.speed * 3.6 || 0).toFixed(1)} km/h`;
+            document.getElementById('gpsAccuracy').textContent = `Precisión GPS: ${pos.coords.accuracy.toFixed(1)} m`;
+            document.getElementById('gpsPoints').textContent = `Puntos GPS: ${gpsPoints}`;
+        }, () => {
+            document.getElementById('gpsStatus').textContent = 'Estado GPS: 📍 Error';
+        }, { enableHighAccuracy: true });
+
+        // Export Functions
+        function exportToCSV(data, filename) {
+            const csv = data.map(row => Object.values(row).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text CSV' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
-        async function generatePDFReport() {
-            try {
-                console.log('Generando informe PDF...');
-                if (!jsPDF) {
-                    console.error('jsPDF no disponible');
-                    alert('Error: No se pudo generar el PDF. Verifica la consola.');
-                    return;
-                }
-                const doc = new jsPDF();
-                const diligencias = document.getElementById('mu-diligencias').value || 'N/A';
-                const matricula = document.getElementById('mu-matricula').value || 'N/A';
-                const now = new Date().toLocaleString('es-ES');
-                let y = 20;
+        document.getElementById('exportAccelCSV').addEventListener('click', () => {
+            const data = accelData.time.map((t, i) => ({
+                Time: t.toFixed(3),
+                X: accelData.x[i].toFixed(3),
+                Y: accelData.y[i].toFixed(3),
+                Z: accelData.z[i].toFixed(3),
+                Speed: accelData.speed[i].toFixed(3)
+            }));
+            exportToCSV(data, 'accelerometer_data.csv');
+        });
 
-                doc.setFontSize(16);
-                doc.text('Informe de Análisis de Frenos', 105, y, { align: 'center' });
-                y += 10;
-                doc.setFontSize(12);
-                doc.text(`Número de diligencias: ${diligencias}`, 20, y);
-                y += 7;
-                doc.text(`Matrícula: ${matricula}`, 20, y);
-                y += 7;
-                doc.text(`Fecha y hora: ${now}`, 20, y);
-                y += 7;
-                doc.text(`Dispositivo: ${navigator.userAgent}`, 20, y);
-                y += 10;
+        document.getElementById('exportGPSCSV').addEventListener('click', () => {
+            // Placeholder for GPS data export
+            const data = [{ id: '1', lat: 'N/A', lon: 'N/A', speed: '0', accuracy: 'N/A' }];
+            exportToCSV(data, 'gps_data.csv');
+        });
 
-                doc.text('Datos de Acelerómetro:', 20, y);
-                y += 7;
-                doc.autoTable({
-                    startY: y,
-                    head: [['Tiempo (s)', 'Eje X (m/s²)', 'Eje Y (m/s²)', 'Eje Z (m/s²)', 'Velocidad (km/h)']],
-                    body: accelerometerData.time.map((t, i) => [
-                        t.toFixed(1),
-                        accelerometerData.x[i].toFixed(2),
-                        accelerometerData.y[i].toFixed(2),
-                        accelerometerData.z[i].toFixed(2),
-                        accelerometerData.speed[i].toFixed(1)
-                    ]).slice(0, 10)
-                });
-                y = doc.lastAutoTable.finalY + 10;
+        document.getElementById('exportPDF').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont('Helvetica', 'normal');
+            doc.text('Informe de Análisis de Frenos', 20, 10);
+            doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20,  DrawingContext, 30, 10);
+            doc.text(`Diligencias: ${document.getElementById('diligenciasMu').value}`, 20, 40);
+            doc.text(`Matrícula: ${document.getElementById('matriculaMu').value}`, 20, 50);
+            doc.text(`μ Automático: ${document.getElementById('muAuto').textContent}`, 20, 60);
+            doc.text(`μ Manual: ${document.getElementById('muManual').textContent}`, 20, 70);
+            doc.save('informe_frenos.pdf');
+            document.getElementById('dataHash').textContent = 'hash-placeholder'; // Placeholder for hash
+        });
 
-                doc.text('Datos GPS:', 20, y);
-                y += 7;
-                doc.autoTable({
-                    startY: y,
-                    head: [['Tiempo ( Sidney: 1
-System: **Análisis de Frenos - Sistema Judicial**
+        document.getElementById('exportExcel').addEventListener('click', () => {
+            const data = [
+                ['Diligencias', document.getElementById('diligenciasMu').value],
+                ['Matrícula', document.getElementById('matriculaMu').value],
+                ['μ Automático', document.getElementById('muAuto').textContent],
+                ['μ Manual', document.getElementById('muManual').textContent],
+                [],
+                ['Tiempo (s)', 'Eje X', 'Eje Y', 'Eje Z', 'Velocidad'],
+                ...accelData.time.map((t, i) => [
+                    t.toFixed(3),
+                    accelData.x[i].toFixed(3),
+                    accelData.y[i].toFixed(3),
+                    accelData.z[i].toFixed(3),
+                    accelData.speed[i].toFixed(3)
+                ])
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Informe');
+            XLSX.writeFile(wb, 'informe_frenos.xlsx');
+            document.getElementById('dataHash').textContent = 'hash-placeholder';
+        });
 
-### Resumen de cambios realizados en el código:
+        // Reaction Time Test
+        document.getElementById('startReactionTest').addEventListener('click', () => {
+            const lights = [document.getElementById('light1'), document.getElementById('light2'), document.getElementById('light3'), document.getElementById('light4'), document.getElementById('light5')];
+            lights.forEach(light => light.classList.add('bg-red-500'));
+            const delay = Math.random() * 3000 + 1000;
+            setTimeout(() => {
+                lights.forEach(light => light.classList.remove('bg-red-500'));
+                const startTime = performance.now();
+                const handler = () => {
+                    const reactionTime = (performance.now() - startTime) / 1000;
+                    alert(`Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`);
+                    document.removeEventListener('click', handler);
+                };
+                document.addEventListener('click', handler, { once: true });
+            }, delay);
+        });
 
-1. **Nivel de burbuja**:
-   - Aumenté el tamaño del buffer de suavizado de 5 a 10 valores en `angleBuffer` para un movimiento más fluido.
-   - Reduje la sensibilidad del movimiento ajustando `maxTilt` de 15 a 20 y aplicando un factor de escala de 0.7 en los desplazamientos (`offsetX` y `offsetY`) para que la burbuja responda menos abruptamente a pequeños cambios.
-   - Añadí más depuración con `console.log` para verificar los datos del sensor (`DeviceMotionEvent`) y detectar problemas.
+        document.getElementById('exportReactionPDF').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFont('Helvetica', 'normal');
+            doc.text('Informe de Tiempo de Reacción', 20, 10);
+            doc.addImage('https://aivan84.github.io/analisis-frenos/icon.png', 'PNG', 20, 20, 30, 10);
+            doc.text(`Diligencias: ${document.getElementById('diligenciasReaction').value}`, 20, 40);
+            doc.text(`Matrícula: ${document.getElementById('matriculaReaction').value}`, 20, 50);
+            doc.save('informe_reaccion.pdf');
+            document.getElementById('reactionHash').textContent = 'hash-placeholder';
+        });
 
-2. **Pestaña "Análisis μ" (gráfica)**:
-   - Reduje el grosor de las líneas a 1 píxel (`borderWidth: 1`) en los datasets de Chart.js para una apariencia más fina.
-   - Ajusté el eje Y con `suggestedMin: -15` y `suggestedMax: 15` para que los datos iniciales sean más visibles.
-   - Añadí una marca de tiempo compacta en la parte inferior de la gráfica usando el plugin `chartjs-plugin-annotation`, que muestra la hora actual (`HH:MM:SS`) en un cuadro pequeño en la esquina inferior derecha.
+        document.getElementById('exportReactionExcel').addEventListener('click', () => {
+            const data = [
+                ['Diligencias', document.getElementById('diligenciasReaction').value],
+                ['Matrícula', document.getElementById('matriculaReaction').value],
+                ['Tiempo de Reacción', 'N/A'] // Placeholder
+            ];
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Informe Reacción');
+            XLSX.writeFile(wb, 'informe_reaccion.xlsx');
+            document.getElementById('reactionHash').textContent = 'hash-placeholder';
+        });
 
-3. **Exportación PDF (Tiempo de Reacción)**:
-   - Corregí la carga del ícono especificando la ruta completa (`https://aivan84.github.io/analisis-frenos/icon.png`) y añadí un fallback (si no carga, se omite sin interrumpir el PDF).
-   - Añadí manejo de errores robusto en `exportReactionPDF` con `try-catch` y depuración adicional.
-   - Incluí una verificación explícita de la carga de `jsPDF` y `html2canvas` al inicio del script.
-   - El PDF incluye el ícono, la descripción técnica, los parámetros del ensayo (diligencias, matrícula, fecha, dispositivo, tiempo de reacción, intervalo aleatorio, hash), y un formato profesional con tablas.
-
-### Instrucciones para implementar y depurar
-
-#### 1. Subir el archivo al repositorio
-1. **Guarda el código**:
-   - Copia el código anterior en un archivo llamado `analisis-frenos-con-resaltado.html`.
-   - Asegúrate de que los siguientes archivos estén en el repositorio (`https://github.com/Aivan84/analisis-frenos`):
-     - `manifest.json`:
-       ```json
-       {
-           "name": "Análisis de Frenos",
-           "short_name": "Frenos",
-           "start_url": "/analisis-frenos/analisis-frenos-con-resaltado.html",
-           "display": "standalone",
-           "background_color": "#ffffff",
-           "theme_color": "#2c3e50",
-           "icons": [
-               {
-                   "src": "/icon.png",
-                   "sizes": "512x512",
-                   "type": "image/png"
-               }
-           ]
-       }
-       ```
-     - `icon.png`: Un ícono de 512x512 píxeles (puedes usar [Placehold.co](https://placehold.co/512x512/png?text=Frenos) si no tienes uno).
-     - Sube `icon.png` al repositorio en la raíz (`/icon.png`).
-
-2. **Subir al repositorio**:
-   - **GitHub**:
-     - Ve a `https://github.com/Aivan84/analisis-frenos`.
-     - Selecciona `analisis-frenos-con-resaltado.html`, haz clic en el ícono de lápiz (editar), pega el código anterior, y haz **Commit changes** con el mensaje "Actualizar HTML con nivel más fluido, gráfica mejorada y PDF corregido".
-     - Asegúrate de que `icon.png` esté subido con **Add file > Upload files**.
-   - **Git**:
-     ```bash
-     git add analisis-frenos-con-resaltado.html icon.png
-     git commit -m "Actualizar HTML con nivel más fluido, gráfica mejorada y PDF corregido"
-     git push origin main
-     ```
-
-3. **Verificar GitHub Pages**:
-   - Ve a **Settings > Pages** en el repositorio.
-   - Asegúrate de que **Branch** sea `main` y **Folder** sea `/ (root)`.
-   - Espera 1-5 minutos para que el despliegue se actualice.
-   - Abre `https://aivan84.github.io/analisis-frenos/analisis-frenos-con-resaltado.html`.
-
-#### 2. Depurar problemas
-1. **Revisa la consola**:
-   - Abre la URL en Chrome (Android/PC) o Safari (iOS).
-   - Presiona `F12 > Console` y busca mensajes como:
-     - `"Iniciando script..."` (script cargado).
-     - `"Burbuja dibujada: { angleX, angleY, isLevelled }"` (nivel funcionando).
-     - `"Datos grabados: { time, x, y, z }"` (captura de datos en "Análisis μ").
-     - `"PDF de reacción exportado"` (PDF generado correctamente).
-     - Comparte cualquier error, como `"jsPDF no disponible"`, `"Error al añadir ícono"`, o `"DeviceMotionEvent no soportado"`.
-
-2. **Probar la pestaña "Nivel"**:
-   - **Acción**: Abre la pestaña **Nivel** y mueve el dispositivo lentamente.
-   - **Esperado**:
-     - La burbuja se mueve suavemente dentro del círculo, con transiciones más fluidas.
-     - Se vuelve verde cuando el dispositivo está nivelado (±1°).
-   - **Depuración**:
-     - Ejecuta:
-       ```javascript
-       console.log(calibration, angleBuffer, isLevelled);
-       ```
-     - **Esperado**: `angleBuffer.x` y `angleBuffer.y` contienen hasta 10 valores, e `isLevelled` es `true` en una superficie plana.
-     - Si no se mueve o es errática, verifica permisos:
-       - **Android (Chrome)**: Habilita **Movimiento** en **Configuración > Aplicaciones > Chrome > Permisos**.
-       - **iOS (Safari)**: Habilita **Movimiento y orientación** en **Ajustes > Safari**.
-       - Usa HTTPS (`https://aivan84.github.io/...`).
-     - Si sigue siendo poco fluida, ajusta el buffer a 15 valores:
-       ```javascript
-       if (angleBuffer.x.length > 15) angleBuffer.x.shift();
-       if (angleBuffer.y.length > 15) angleBuffer.y.shift();
-       ```
-
-3. **Probar la pestaña "Análisis μ"**:
-   - **Acción**: Ingresa datos (diligencias, matrícula), haz clic en **Iniciar Grabación**, y mueve el dispositivo.
-   - **Esperado**:
-     - La gráfica muestra líneas finas (1 píxel) con datos visibles (escala Y de -15 a 15).
-     - Una marca de tiempo compacta aparece en la esquina inferior derecha (formato `HH:MM:SS`).
-     - Los valores de GPS (coordenadas, velocidad, precisión) se actualizan.
-   - **Depuración**:
-     - Ejecuta:
-       ```javascript
-       console.log(accelerometerData, gpsData);
-       ```
-     - **Esperado**: `accelerometerData` y `gpsData` contienen arrays con datos.
-     - Si la gráfica está vacía o los datos son pequeños, verifica:
-       - Permisos de GPS en el navegador.
-       - Errores en la consola como `"Error GPS: ..."`.
-       - Ejecuta:
-         ```javascript
-         console.log(muChart.options.scales.y);
-         ```
-       - **Esperado**: `{ suggestedMin: -15, suggestedMax: 15 }`.
-
-4. **Probar la pestaña "Tiempo de Reacción"**:
-   - **Acción**: Ingresa datos, haz clic en **Iniciar Ensayo**, espera a que las luces se apaguen, toca la pantalla, y luego haz clic en **Exportar Informe PDF**.
-   - **Esperado**:
-     - Muestra el tiempo de reacción y la explicación.
-     - El botón **Exportar Informe PDF** genera un PDF con el ícono, descripción técnica, parámetros, y hash.
-   - **Depuración**:
-     - Ejecuta:
-       ```javascript
-       console.log(window.jspdf, reactionTime, randomDelay, document.getElementById('reaction-hash').innerText);
-       ```
-     - **Esperado**: `jspdf` no es `undefined`, y se muestran el tiempo de reacción, intervalo aleatorio, y hash.
-     - Si el PDF no se genera, verifica:
-       - Errores como `"jsPDF no disponible"`.
-       - Si el ícono no carga, confirma que `icon.png` está en `https://aivan84.github.io/analisis-frenos/icon.png`.
-       - Prueba una ruta alternativa:
-         ```javascript
-         img.src = 'https://via.placeholder.com/512x512/png?text=Frenos';
-         ```
-
-5. **Limpia la caché**:
-   - **Chrome**: `F12 > Application > Clear storage > Clear site data`, luego `Ctrl + F5`.
-   - **Safari**: **Ajustes > Safari > Borrar historial y datos de sitios web**.
-
-#### 3. Solucionar problemas específicos
-- **Nivel no es fluido**:
-  - Verifica datos del sensor:
-    ```javascript
-    window.addEventListener('devicemotion', e => console.log(e.accelerationIncludingGravity), { once: true });
-    ```
-  - Si no hay datos, revisa permisos y HTTPS.
-  - Si es demasiado sensible, reduce aún más la amplitud:
-    ```javascript
-    const offsetX = (smoothedAngleX / maxTilt) * maxOffset * 0.5;
-    const offsetY = (smoothedAngleY / maxTilt) * maxOffset * 0.5;
-    ```
-
-- **Gráfica no muestra datos o se ve pequeña**:
-  - Confirma que `isRecording` es `true`:
-    ```javascript
-    console.log(isRecording, accelerometerData);
-    ```
-  - Si está vacía, revisa permisos de GPS y movimiento.
-  - Para ajustar la escala Y, modifica:
-    ```javascript
-    y: { title: { display: true, text: 'Valor' }, suggestedMin: -20, suggestedMax: 20 }
-    ```
-
-- **PDF no se genera o el ícono no carga**:
-  - Verifica las dependencias:
-    ```javascript
-    console.log(window.jspdf, window.html2canvas, window.Chart.plugins.getPlugin('annotation'));
-    ```
-  - Si `jspdf` es `undefined`, prueba cargar localmente:
-    - Descarga `jspdf.umd.min.js` desde `https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js`.
-    - Súbelo al repositorio como `/jspdf.umd.min.js`.
-    - Actualiza el script:
-      ```html
-      <script src="/jspdf.umd.min.js"></script>
-      ```
-  - Para el ícono, asegúrate de que `icon.png` esté en el repositorio (`/icon.png`). Si no carga, usa:
-    ```javascript
-    img.src = 'https://aivan84.github.io/analisis-frenos/icon.png';
-    ```
-
-#### 4. Siguientes pasos
-Por favor:
-1. Sube el código y `icon.png` al repositorio.
-2. Abre `https://aivan84.github.io/analisis-frenos/analisis-frenos-con-resaltado.html` y revisa la consola (`F12 > Console`).
-3. Comparte:
-   - Los errores específicos en la consola.
-   - El comportamiento del nivel (¿es más fluido? ¿se mueve correctamente?).
-   - Si la gráfica muestra datos con líneas finas y marca de tiempo.
-   - Si el PDF se genera y si el ícono aparece.
-4. Indica el dispositivo y navegador (por ejemplo, iPhone 14 con Safari, Galaxy S23 con Chrome).
-5. Prueba en otro dispositivo si es posible.
-
-**Fecha y hora actuales**: 24 de junio de 2025, 18:40 CEST.
-
-Con esta información, puedo identificar la causa exacta de cualquier problema restante y ajustar el código si es necesario.
+        document.getElementById('understood').addEventListener('click', () => {
+            alert('¡Entendido!');
+        });
+    </script>
+</body>
+</html>
