@@ -191,6 +191,7 @@
             border-radius: 0.5rem;
             width: 100%;
             height: 40vh;
+            position: relative;
         }
         #mu-graph {
             width: 100% !important;
@@ -424,11 +425,12 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.0/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <script>
         console.log('Iniciando script...');
         const { jsPDF } = window.jspdf || {};
-        if (!window.Chart || !window.html2canvas || !window.saveAs || !jsPDF) {
-            console.error('Error: Alguna dependencia (Chart.js, html2canvas, FileSaver, jsPDF) no se cargó correctamente');
+        if (!window.Chart || !window.html2canvas || !window.saveAs || !jsPDF || !window.Chart.plugins.getPlugin('annotation')) {
+            console.error('Error: Alguna dependencia (Chart.js, html2canvas, FileSaver, jsPDF, chartjs-plugin-annotation) no se cargó correctamente');
         }
 
         let accelerometerData = { x: [], y: [], z: [], speed: [], time: [] };
@@ -547,12 +549,12 @@
                 bubbleCtx.stroke();
 
                 // Burbuja
-                const maxTilt = 15;
+                const maxTilt = 20; // Reducir sensibilidad
                 const smoothedAngleX = angleBuffer.x.length ? angleBuffer.x.reduce((sum, val) => sum + val, 0) / angleBuffer.x.length : 0;
                 const smoothedAngleY = angleBuffer.y.length ? angleBuffer.y.reduce((sum, val) => sum + val, 0) / angleBuffer.y.length : 0;
                 const maxOffset = outerRadius - bubbleRadius;
-                const offsetX = (smoothedAngleX / maxTilt) * maxOffset;
-                const offsetY = (smoothedAngleY / maxTilt) * maxOffset;
+                const offsetX = (smoothedAngleX / maxTilt) * maxOffset * 0.7; // Reducir amplitud
+                const offsetY = (smoothedAngleY / maxTilt) * maxOffset * 0.7; // Reducir amplitud
 
                 bubbleCtx.beginPath();
                 bubbleCtx.arc(centerX + offsetX, centerY + offsetY, bubbleRadius, 0, 2 * Math.PI);
@@ -588,11 +590,11 @@
                     const z = (event.accelerationIncludingGravity?.z || 0) - calibration.z;
                     calibration.angleX = Math.atan2(y, z) * (180 / Math.PI);
                     calibration.angleY = Math.atan2(x, z) * (180 / Math.PI);
-                    // Suavizado: mantener los últimos 5 valores
+                    // Suavizado: mantener los últimos 10 valores
                     angleBuffer.x.push(calibration.angleX);
                     angleBuffer.y.push(calibration.angleY);
-                    if (angleBuffer.x.length > 5) angleBuffer.x.shift();
-                    if (angleBuffer.y.length > 5) angleBuffer.y.shift();
+                    if (angleBuffer.x.length > 10) angleBuffer.x.shift();
+                    if (angleBuffer.y.length > 10) angleBuffer.y.shift();
                     isLevelled = Math.abs(calibration.angleX) < 1 && Math.abs(calibration.angleY) < 1;
                     drawBubble();
                     console.log('DeviceMotion:', { x, y, z, angleX: calibration.angleX, angleY: calibration.angleY, isLevelled });
@@ -657,18 +659,38 @@
                 data: {
                     labels: [],
                     datasets: [
-                        { label: 'Eje X (m/s²)', data: [], borderColor: '#e74c3c', hidden: false },
-                        { label: 'Eje Y (m/s²)', data: [], borderColor: '#3498db', hidden: false },
-                        { label: 'Eje Z (m/s²)', data: [], borderColor: '#2ecc71', hidden: false },
-                        { label: 'Velocidad (km/h)', data: [], borderColor: '#f1c40f', hidden: false },
+                        { label: 'Eje X (m/s²)', data: [], borderColor: '#e74c3c', borderWidth: 1, hidden: false },
+                        { label: 'Eje Y (m/s²)', data: [], borderColor: '#3498db', borderWidth: 1, hidden: false },
+                        { label: 'Eje Z (m/s²)', data: [], borderColor: '#2ecc71', borderWidth: 1, hidden: false },
+                        { label: 'Velocidad (km/h)', data: [], borderColor: '#f1c40f', borderWidth: 1, hidden: false },
                     ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: { y: { beginAtZero: false } },
+                    scales: {
+                        x: { title: { display: true, text: 'Tiempo (s)' } },
+                        y: {
+                            title: { display: true, text: 'Valor' },
+                            suggestedMin: -15,
+                            suggestedMax: 15
+                        }
+                    },
                     plugins: {
-                        title: { display: true, text: 'Datos de Frenado en Tiempo Real', font: { size: 1.2 * 16 } }
+                        title: { display: true, text: 'Datos de Frenado en Tiempo Real', font: { size: 1.2 * 16 } },
+                        annotation: {
+                            annotations: {
+                                timestamp: {
+                                    type: 'label',
+                                    content: () => new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                                    position: { x: 'end', y: 'end' },
+                                    font: { size: 12 },
+                                    color: '#666',
+                                    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                    padding: 4
+                                }
+                            }
+                        }
                     },
                     onClick: (event, elements, chart) => {
                         try {
@@ -902,254 +924,200 @@
                 y += 7;
                 doc.autoTable({
                     startY: y,
-                    head: [['Tiempo (s)', 'Latitud', 'Longitud', 'Velocidad (km/h)', 'Precisión (m)']],
-                    body: gpsData.time.map((t, i) => [
-                        t.toFixed(1),
-                        gpsData.lat[i].toFixed(6),
-                        gpsData.lon[i].toFixed(6),
-                        gpsData.speed[i].toFixed(1),
-                        gpsData.accuracy[i].toFixed(1)
-                    ]).slice(0, 10)
-                });
-                y = doc.lastAutoTable.finalY + 10;
+                    head: [['Tiempo ( Sidney: 1
+System: **Análisis de Frenos - Sistema Judicial**
 
-                doc.text(`μ Automático: ${document.getElementById('mu-auto').innerText}`, 20, y);
-                y += 7;
-                doc.text(`μ Manual: ${document.getElementById('mu-manual').innerText}`, 20, y);
-                y += 10;
+### Resumen de cambios realizados en el código:
 
-                const hash = document.getElementById('mu-hash').innerText;
-                doc.text(`Hash de integridad: ${hash}`, 20, y);
-                y += 10;
-                doc.text('Certificado por: Análisis de Frenos', 20, y);
-                doc.save(`informe_${diligencias.replace(/[/\s]/g, '_')}.pdf`);
-                console.log('Informe PDF generado');
-            } catch (error) {
-                console.error('Error en generatePDFReport:', error);
-            }
-        }
+1. **Nivel de burbuja**:
+   - Aumenté el tamaño del buffer de suavizado de 5 a 10 valores en `angleBuffer` para un movimiento más fluido.
+   - Reduje la sensibilidad del movimiento ajustando `maxTilt` de 15 a 20 y aplicando un factor de escala de 0.7 en los desplazamientos (`offsetX` y `offsetY`) para que la burbuja responda menos abruptamente a pequeños cambios.
+   - Añadí más depuración con `console.log` para verificar los datos del sensor (`DeviceMotionEvent`) y detectar problemas.
 
-        // Test de tiempo de reacción
-        let randomDelay = 0;
-        let isTestRunning = false;
-        let lightsOffTime = 0;
-        let reactionTime = 0;
+2. **Pestaña "Análisis μ" (gráfica)**:
+   - Reduje el grosor de las líneas a 1 píxel (`borderWidth: 1`) en los datasets de Chart.js para una apariencia más fina.
+   - Ajusté el eje Y con `suggestedMin: -15` y `suggestedMax: 15` para que los datos iniciales sean más visibles.
+   - Añadí una marca de tiempo compacta en la parte inferior de la gráfica usando el plugin `chartjs-plugin-annotation`, que muestra la hora actual (`HH:MM:SS`) en un cuadro pequeño en la esquina inferior derecha.
 
-        function iniciarTestReaccion(event) {
-            try {
-                console.log('Iniciando test de reacción...');
-                event.stopPropagation();
-                const luces = document.querySelectorAll('#reaccion .light');
-                const area = document.querySelector('#reaction-area');
-                const resultado = document.querySelector('#reaction-result');
-                const explicacion = document.querySelector('#reaction-explanation');
-                const startBtn = document.querySelector('#iniciar-test');
-                const exportBtn = document.querySelector('#export-pdf');
-                let indiceLuz = 1;
+3. **Exportación PDF (Tiempo de Reacción)**:
+   - Corregí la carga del ícono especificando la ruta completa (`https://aivan84.github.io/analisis-frenos/icon.png`) y añadí un fallback (si no carga, se omite sin interrumpir el PDF).
+   - Añadí manejo de errores robusto en `exportReactionPDF` con `try-catch` y depuración adicional.
+   - Incluí una verificación explícita de la carga de `jsPDF` y `html2canvas` al inicio del script.
+   - El PDF incluye el ícono, la descripción técnica, los parámetros del ensayo (diligencias, matrícula, fecha, dispositivo, tiempo de reacción, intervalo aleatorio, hash), y un formato profesional con tablas.
 
-                isTestRunning = true;
-                startBtn.disabled = true;
-                exportBtn.disabled = true;
-                resultado.innerText = '';
-                explicacion.innerText = '';
-                area.innerText = 'Prepárate...';
-                resultado.classList.remove('false-start');
-                luces.forEach(luz => luz.classList.remove('encendida'));
+### Instrucciones para implementar y depurar
 
-                const intervaloLuces = setInterval(() => {
-                    document.querySelectorAll(`.light[data-index="${indiceLuz}"]`).forEach(luz => luz.classList.add('encendida'));
-                    indiceLuz++;
-                    if (indiceLuz > 5) {
-                        clearInterval(intervaloLuces);
-                        randomDelay = Math.random() * (5000 - 500) + 500;
-                        setTimeout(() => {
-                            luces.forEach(luz => luz.classList.remove('encendida'));
-                            area.innerText = '¡Toca ahora!';
-                            lightsOffTime = performance.now();
-                            capturarTiempoReaccion();
-                            console.log('Luces apagadas, esperando reacción');
-                        }, randomDelay);
-                    }
-                }, 500);
+#### 1. Subir el archivo al repositorio
+1. **Guarda el código**:
+   - Copia el código anterior en un archivo llamado `analisis-frenos-con-resaltado.html`.
+   - Asegúrate de que los siguientes archivos estén en el repositorio (`https://github.com/Aivan84/analisis-frenos`):
+     - `manifest.json`:
+       ```json
+       {
+           "name": "Análisis de Frenos",
+           "short_name": "Frenos",
+           "start_url": "/analisis-frenos/analisis-frenos-con-resaltado.html",
+           "display": "standalone",
+           "background_color": "#ffffff",
+           "theme_color": "#2c3e50",
+           "icons": [
+               {
+                   "src": "/icon.png",
+                   "sizes": "512x512",
+                   "type": "image/png"
+               }
+           ]
+       }
+       ```
+     - `icon.png`: Un ícono de 512x512 píxeles (puedes usar [Placehold.co](https://placehold.co/512x512/png?text=Frenos) si no tienes uno).
+     - Sube `icon.png` al repositorio en la raíz (`/icon.png`).
 
-                const falseStartHandler = event => {
-                    if (isTestRunning && !lightsOffTime) {
-                        isTestRunning = false;
-                        clearInterval(intervaloLuces);
-                        luces.forEach(luz => luz.classList.remove('encendida'));
-                        resultado.innerText = 'False Start: Interacción prematura detectada';
-                        resultado.classList.add('false-start');
-                        explicacion.innerText = 'El ensayo fue invalidado debido a una interacción antes de la desactivación de los indicadores luminosos.';
-                        startBtn.disabled = false;
-                        area.removeEventListener('click', falseStartHandler);
-                        area.removeEventListener('touchstart', falseStartHandler);
-                        console.log('False start detectado');
-                    }
-                };
+2. **Subir al repositorio**:
+   - **GitHub**:
+     - Ve a `https://github.com/Aivan84/analisis-frenos`.
+     - Selecciona `analisis-frenos-con-resaltado.html`, haz clic en el ícono de lápiz (editar), pega el código anterior, y haz **Commit changes** con el mensaje "Actualizar HTML con nivel más fluido, gráfica mejorada y PDF corregido".
+     - Asegúrate de que `icon.png` esté subido con **Add file > Upload files**.
+   - **Git**:
+     ```bash
+     git add analisis-frenos-con-resaltado.html icon.png
+     git commit -m "Actualizar HTML con nivel más fluido, gráfica mejorada y PDF corregido"
+     git push origin main
+     ```
 
-                setTimeout(() => {
-                    area.addEventListener('click', falseStartHandler);
-                    area.addEventListener('touchstart', falseStartHandler);
-                }, 100);
-            } catch (error) {
-                console.error('Error en iniciarTestReaccion:', error);
-            }
-        }
+3. **Verificar GitHub Pages**:
+   - Ve a **Settings > Pages** en el repositorio.
+   - Asegúrate de que **Branch** sea `main` y **Folder** sea `/ (root)`.
+   - Espera 1-5 minutos para que el despliegue se actualice.
+   - Abre `https://aivan84.github.io/analisis-frenos/analisis-frenos-con-resaltado.html`.
 
-        function capturarTiempoReaccion() {
-            try {
-                console.log('Configurando captura de tiempo de reacción...');
-                const area = document.querySelector('#reaction-area');
-                const resultado = document.querySelector('#reaction-result');
-                const explicacion = document.querySelector('#reaction-explanation');
-                const startBtn = document.querySelector('#iniciar-test');
-                const exportBtn = document.querySelector('#export-pdf');
-                const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
-                const matricula = document.getElementById('reaccion-matricula').value || '';
+#### 2. Depurar problemas
+1. **Revisa la consola**:
+   - Abre la URL en Chrome (Android/PC) o Safari (iOS).
+   - Presiona `F12 > Console` y busca mensajes como:
+     - `"Iniciando script..."` (script cargado).
+     - `"Burbuja dibujada: { angleX, angleY, isLevelled }"` (nivel funcionando).
+     - `"Datos grabados: { time, x, y, z }"` (captura de datos en "Análisis μ").
+     - `"PDF de reacción exportado"` (PDF generado correctamente).
+     - Comparte cualquier error, como `"jsPDF no disponible"`, `"Error al añadir ícono"`, o `"DeviceMotionEvent no soportado"`.
 
-                const captureReaction = async event => {
-                    event.stopPropagation();
-                    if (!isTestRunning) return;
-                    isTestRunning = false;
-                    reactionTime = (performance.now() - lightsOffTime) / 1000;
-                    resultado.innerText = `Tiempo de reacción: ${reactionTime.toFixed(3)} segundos`;
-                    explicacion.innerHTML = `
-                        <strong>Descripción técnica del ensayo:</strong><br>
-                        El ensayo de tiempo de reacción, conforme a los estándares de evaluación de respuesta humana (ISO 23274), consiste en la activación secuencial y acumulativa de cinco pares de indicadores luminosos rojos, con un intervalo de 0,500 segundos por par, emulando el sistema de señalización de un semáforo de Fórmula 1. Cada par de indicadores permanece encendido tras su activación. Tras la activación del último par, se introduce un intervalo aleatorio entre 0,500 y 5,000 segundos antes de la desactivación simultánea de todos los indicadores. En este ensayo, el intervalo aleatorio fue de ${(randomDelay / 1000).toFixed(3)} segundos. El tiempo de reacción se mide desde la desactivación de los indicadores hasta la interacción del usuario con la pantalla táctil, con una precisión de ±1 milisegundo.<br><br>
-                        <strong>Parámetros del ensayo:</strong><br>
-                        - Número de diligencias: ${diligencias}<br>
-                        - Matrícula: ${matricula}<br>
-                        - Fecha y hora: ${new Date().toLocaleString('es-ES')}<br>
-                        - Dispositivo: ${navigator.userAgent}<br>
-                        - Tiempo de reacción registrado: ${reactionTime.toFixed(3)} segundos
-                    `;
-                    startBtn.disabled = false;
-                    exportBtn.disabled = false;
-                    area.innerText = 'Prepárate para interactuar nuevamente';
-                    const hash = await generateHash(
-                        `Número de diligencias,${diligencias}\nMatrícula,${matricula}\nFecha y hora,${new Date().toLocaleString('es-ES')}\nDispositivo,${navigator.userAgent}\nTiempo de reacción (s),${reactionTime.toFixed(3)}\nIntervalo aleatorio (s),${(randomDelay / 1000).toFixed(3)}`
-                    );
-                    document.getElementById('reaction-hash').innerText = hash;
-                    console.log('Tiempo de reacción capturado:', reactionTime);
-                    area.removeEventListener('click', captureReaction);
-                    area.removeEventListener('touchstart', captureReaction);
-                };
+2. **Probar la pestaña "Nivel"**:
+   - **Acción**: Abre la pestaña **Nivel** y mueve el dispositivo lentamente.
+   - **Esperado**:
+     - La burbuja se mueve suavemente dentro del círculo, con transiciones más fluidas.
+     - Se vuelve verde cuando el dispositivo está nivelado (±1°).
+   - **Depuración**:
+     - Ejecuta:
+       ```javascript
+       console.log(calibration, angleBuffer, isLevelled);
+       ```
+     - **Esperado**: `angleBuffer.x` y `angleBuffer.y` contienen hasta 10 valores, e `isLevelled` es `true` en una superficie plana.
+     - Si no se mueve o es errática, verifica permisos:
+       - **Android (Chrome)**: Habilita **Movimiento** en **Configuración > Aplicaciones > Chrome > Permisos**.
+       - **iOS (Safari)**: Habilita **Movimiento y orientación** en **Ajustes > Safari**.
+       - Usa HTTPS (`https://aivan84.github.io/...`).
+     - Si sigue siendo poco fluida, ajusta el buffer a 15 valores:
+       ```javascript
+       if (angleBuffer.x.length > 15) angleBuffer.x.shift();
+       if (angleBuffer.y.length > 15) angleBuffer.y.shift();
+       ```
 
-                area.addEventListener('click', captureReaction, { once: true });
-                area.addEventListener('touchstart', captureReaction, { once: true });
-            } catch (error) {
-                console.error('Error en capturarTiempoReaccion:', error);
-            }
-        }
+3. **Probar la pestaña "Análisis μ"**:
+   - **Acción**: Ingresa datos (diligencias, matrícula), haz clic en **Iniciar Grabación**, y mueve el dispositivo.
+   - **Esperado**:
+     - La gráfica muestra líneas finas (1 píxel) con datos visibles (escala Y de -15 a 15).
+     - Una marca de tiempo compacta aparece en la esquina inferior derecha (formato `HH:MM:SS`).
+     - Los valores de GPS (coordenadas, velocidad, precisión) se actualizan.
+   - **Depuración**:
+     - Ejecuta:
+       ```javascript
+       console.log(accelerometerData, gpsData);
+       ```
+     - **Esperado**: `accelerometerData` y `gpsData` contienen arrays con datos.
+     - Si la gráfica está vacía o los datos son pequeños, verifica:
+       - Permisos de GPS en el navegador.
+       - Errores en la consola como `"Error GPS: ..."`.
+       - Ejecuta:
+         ```javascript
+         console.log(muChart.options.scales.y);
+         ```
+       - **Esperado**: `{ suggestedMin: -15, suggestedMax: 15 }`.
 
-        async function exportReactionPDF() {
-            try {
-                console.log('Generando PDF de tiempo de reacción...');
-                if (!jsPDF) {
-                    console.error('jsPDF no disponible');
-                    alert('Error: No se pudo generar el PDF. Verifica la consola.');
-                    return;
-                }
-                const doc = new jsPDF();
-                const diligencias = document.getElementById('reaccion-diligencias').value || 'N/A';
-                const matricula = document.getElementById('reaccion-matricula').value || 'N/A';
-                const now = new Date().toLocaleString('es-ES');
-                let y = 20;
+4. **Probar la pestaña "Tiempo de Reacción"**:
+   - **Acción**: Ingresa datos, haz clic en **Iniciar Ensayo**, espera a que las luces se apaguen, toca la pantalla, y luego haz clic en **Exportar Informe PDF**.
+   - **Esperado**:
+     - Muestra el tiempo de reacción y la explicación.
+     - El botón **Exportar Informe PDF** genera un PDF con el ícono, descripción técnica, parámetros, y hash.
+   - **Depuración**:
+     - Ejecuta:
+       ```javascript
+       console.log(window.jspdf, reactionTime, randomDelay, document.getElementById('reaction-hash').innerText);
+       ```
+     - **Esperado**: `jspdf` no es `undefined`, y se muestran el tiempo de reacción, intervalo aleatorio, y hash.
+     - Si el PDF no se genera, verifica:
+       - Errores como `"jsPDF no disponible"`.
+       - Si el ícono no carga, confirma que `icon.png` está en `https://aivan84.github.io/analisis-frenos/icon.png`.
+       - Prueba una ruta alternativa:
+         ```javascript
+         img.src = 'https://via.placeholder.com/512x512/png?text=Frenos';
+         ```
 
-                // Añadir ícono
-                try {
-                    const img = new Image();
-                    img.src = '/icon.png';
-                    await new Promise(resolve => {
-                        img.onload = () => {
-                            doc.addImage(img, 'PNG', 80, y, 50, 50);
-                            resolve();
-                        };
-                        img.onerror = () => {
-                            console.warn('No se pudo cargar el ícono');
-                            resolve();
-                        };
-                    });
-                    y += 60;
-                } catch (error) {
-                    console.error('Error al añadir ícono:', error);
-                }
+5. **Limpia la caché**:
+   - **Chrome**: `F12 > Application > Clear storage > Clear site data`, luego `Ctrl + F5`.
+   - **Safari**: **Ajustes > Safari > Borrar historial y datos de sitios web**.
 
-                // Encabezado
-                doc.setFontSize(16);
-                doc.text('Informe de Ensayo de Tiempo de Reacción', 105, y, { align: 'center' });
-                y += 10;
-                doc.setFontSize(12);
-                doc.text('Análisis de Frenos - Sistema Judicial', 105, y, { align: 'center' });
-                y += 10;
+#### 3. Solucionar problemas específicos
+- **Nivel no es fluido**:
+  - Verifica datos del sensor:
+    ```javascript
+    window.addEventListener('devicemotion', e => console.log(e.accelerationIncludingGravity), { once: true });
+    ```
+  - Si no hay datos, revisa permisos y HTTPS.
+  - Si es demasiado sensible, reduce aún más la amplitud:
+    ```javascript
+    const offsetX = (smoothedAngleX / maxTilt) * maxOffset * 0.5;
+    const offsetY = (smoothedAngleY / maxTilt) * maxOffset * 0.5;
+    ```
 
-                // Metadatos
-                doc.text(`Número de diligencias: ${diligencias}`, 20, y);
-                y += 7;
-                doc.text(`Matrícula: ${matricula}`, 20, y);
-                y += 7;
-                doc.text(`Fecha y hora: ${now}`, 20, y);
-                y += 7;
-                doc.text(`Dispositivo: ${navigator.userAgent}`, 20, y);
-                y += 10;
+- **Gráfica no muestra datos o se ve pequeña**:
+  - Confirma que `isRecording` es `true`:
+    ```javascript
+    console.log(isRecording, accelerometerData);
+    ```
+  - Si está vacía, revisa permisos de GPS y movimiento.
+  - Para ajustar la escala Y, modifica:
+    ```javascript
+    y: { title: { display: true, text: 'Valor' }, suggestedMin: -20, suggestedMax: 20 }
+    ```
 
-                // Descripción técnica
-                doc.text('Descripción técnica del ensayo:', 20, y);
-                y += 7;
-                doc.setFontSize(10);
-                doc.text(
-                    'El ensayo de tiempo de reacción, conforme a los estándares de evaluación de respuesta humana (ISO 23274), consiste en la activación secuencial y acumulativa de cinco pares de indicadores luminosos rojos, con un intervalo de 0,500 segundos por par, emulando el sistema de señalización de un semáforo de Fórmula 1. Cada par de indicadores permanece encendido tras su activación. Tras la activación del último par, se introduce un intervalo aleatorio entre 0,500 y 5,000 segundos antes de la desactivación simultánea de todos los indicadores. En este ensayo, el intervalo aleatorio fue de ' + (randomDelay / 1000).toFixed(3) + ' segundos. El tiempo de reacción se mide desde la desactivación de los indicadores hasta la interacción del usuario con la pantalla táctil, con una precisión de ±1 milisegundo.',
-                    20, y, { maxWidth: 170 }
-                );
-                y += 40;
+- **PDF no se genera o el ícono no carga**:
+  - Verifica las dependencias:
+    ```javascript
+    console.log(window.jspdf, window.html2canvas, window.Chart.plugins.getPlugin('annotation'));
+    ```
+  - Si `jspdf` es `undefined`, prueba cargar localmente:
+    - Descarga `jspdf.umd.min.js` desde `https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js`.
+    - Súbelo al repositorio como `/jspdf.umd.min.js`.
+    - Actualiza el script:
+      ```html
+      <script src="/jspdf.umd.min.js"></script>
+      ```
+  - Para el ícono, asegúrate de que `icon.png` esté en el repositorio (`/icon.png`). Si no carga, usa:
+    ```javascript
+    img.src = 'https://aivan84.github.io/analisis-frenos/icon.png';
+    ```
 
-                // Resultados
-                doc.setFontSize(12);
-                doc.text('Resultados del ensayo:', 20, y);
-                y += 7;
-                doc.autoTable({
-                    startY: y,
-                    head: [['Parámetro', 'Valor']],
-                    body: [
-                        ['Tiempo de reacción (s)', reactionTime.toFixed(3)],
-                        ['Intervalo aleatorio (s)', (randomDelay / 1000).toFixed(3)],
-                        ['Hash SHA-256', document.getElementById('reaction-hash').innerText]
-                    ]
-                });
-                y = doc.lastAutoTable.finalY + 10;
+#### 4. Siguientes pasos
+Por favor:
+1. Sube el código y `icon.png` al repositorio.
+2. Abre `https://aivan84.github.io/analisis-frenos/analisis-frenos-con-resaltado.html` y revisa la consola (`F12 > Console`).
+3. Comparte:
+   - Los errores específicos en la consola.
+   - El comportamiento del nivel (¿es más fluido? ¿se mueve correctamente?).
+   - Si la gráfica muestra datos con líneas finas y marca de tiempo.
+   - Si el PDF se genera y si el ícono aparece.
+4. Indica el dispositivo y navegador (por ejemplo, iPhone 14 con Safari, Galaxy S23 con Chrome).
+5. Prueba en otro dispositivo si es posible.
 
-                // Certificación
-                doc.text('Certificado por: Análisis de Frenos', 20, y);
-                y += 7;
-                doc.setFontSize(8);
-                doc.text('Este informe ha sido generado automáticamente por el sistema de Análisis de Frenos para uso en procedimientos judiciales.', 20, y, { maxWidth: 170 });
+**Fecha y hora actuales**: 24 de junio de 2025, 18:40 CEST.
 
-                doc.save(`reaccion_${diligencias.replace(/[/\s]/g, '_')}.pdf`);
-                console.log('PDF de reacción exportado');
-            } catch (error) {
-                console.error('Error en exportReactionPDF:', error);
-            }
-        }
-
-        // Iniciar el test
-        document.getElementById('iniciar-test').addEventListener('click', iniciarTestReaccion);
-        document.getElementById('export-pdf').addEventListener('click', exportReactionPDF);
-
-        // Inicializar nivel al cargar
-        try {
-            initBubbleLevel();
-        } catch (error) {
-            console.error('Error al inicializar nivel al cargar:', error);
-        }
-
-        // Registrar Service Worker (deshabilitado para depuración)
-        /*
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/sw.js')
-                .then(() => console.log('Service Worker registrado'))
-                .catch(err => console.error('Error al registrar Service Worker:', err));
-        }
-        */
-    </script>
-</body>
-</html>
+Con esta información, puedo identificar la causa exacta de cualquier problema restante y ajustar el código si es necesario.
